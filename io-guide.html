@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Files &amp; IO | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Files <span>&amp; IO</span></h1>
+  <p>File extensions for reading and writing, use for safe resource cleanup, buffered streams, and the Path API.</p>
+  <div class="hero-pills">
+    <span>readText</span>
+    <span>readLines</span>
+    <span>useLines</span>
+    <span>writeText</span>
+    <span>use</span>
+    <span>Path</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html" class="active"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. READING FILES ─────────────────────────────────────── -->
+    <section class="section" id="reading">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📖</div>
+        <h2>Reading Files</h2>
+        <span class="section-tag">readText · readLines · useLines</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin adds a set of extension functions directly onto Java's <code class="typ">java.io.File</code>, so no separate reader class or stream setup is needed for the common case of "just read the whole file." <code>readText</code> loads everything into one <code class="typ">String</code>; <code>readLines</code> loads everything into a <code class="typ">List&lt;String&gt;</code>, one entry per line. Both load the entire file into memory at once — fine for typical config files and small-to-medium documents, wrong for anything large enough that holding it all in memory matters.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">readText and readLines</span>
+          <span class="card-badge badge-blue">File extensions</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> java.io.File
+
+<span class="kw">val</span> file = <span class="typ">File</span>(<span class="str">"config.txt"</span>)
+
+<span class="cmt">// readText: whole file as one String</span>
+<span class="kw">val</span> contents: <span class="typ">String</span> = file.<span class="fn">readText</span>()
+<span class="fn">println</span>(contents.<span class="fn">length</span>)
+
+<span class="cmt">// readLines: whole file as a List<String>, one entry per line</span>
+<span class="kw">val</span> lines: <span class="typ">List</span>&lt;<span class="typ">String</span>&gt; = file.<span class="fn">readLines</span>()
+lines.<span class="fn">forEach</span> { <span class="fn">println</span>(it) }
+
+<span class="cmt">// Both throw if the file doesn't exist — no silent empty result</span>
+<span class="cmt">// File("missing.txt").readText()  // throws FileNotFoundException</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">useLines: streaming, memory-efficient reads</span>
+          <span class="card-badge badge-blue">useLines</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// useLines streams line-by-line through a Sequence<String>,</span>
+<span class="cmt">// never holding the whole file in memory at once — the right</span>
+<span class="cmt">// choice for large files (see the Sequences guide for the</span>
+<span class="cmt">// lazy evaluation model this relies on)</span>
+<span class="kw">val</span> file = <span class="typ">File</span>(<span class="str">"large_log.txt"</span>)
+
+<span class="kw">val</span> errorCount = file.<span class="fn">useLines</span> { lines ->
+    lines.<span class="fn">count</span> { it.<span class="fn">contains</span>(<span class="str">"ERROR"</span>) }
+}
+<span class="fn">println</span>(errorCount)
+<span class="cmt">// The Sequence passed to the block is only valid inside it —</span>
+<span class="cmt">// the underlying file handle closes as soon as the block returns</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default to <code>readText</code>/<code>readLines</code> for small files where simplicity wins. Switch to <code>useLines</code> once a file is large enough that loading it whole would be wasteful or risky — log files, large datasets, anything where you only need to scan through once rather than hold the full contents.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. WRITING FILES ─────────────────────────────────────── -->
+    <section class="section" id="writing">
+      <div class="section-header">
+        <div class="section-icon icon-green">✍️</div>
+        <h2>Writing Files</h2>
+        <span class="section-tag">writeText · appendText · writeBytes</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>writeText</code> overwrites a file's entire contents in one call, creating it if it doesn't exist; <code>appendText</code> adds to the end instead of replacing. Both are synchronous, whole-content operations — for incremental writes over time, buffered streams (below) are the better fit.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">writeText and appendText</span>
+          <span class="card-badge badge-green">Writing</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> java.io.File
+
+<span class="kw">val</span> file = <span class="typ">File</span>(<span class="str">"output.txt"</span>)
+
+<span class="cmt">// writeText: overwrites the entire file (creates it if missing)</span>
+file.<span class="fn">writeText</span>(<span class="str">"Line 1\n"</span>)
+
+<span class="cmt">// appendText: adds to the end without touching existing content</span>
+file.<span class="fn">appendText</span>(<span class="str">"Line 2\n"</span>)
+file.<span class="fn">appendText</span>(<span class="str">"Line 3\n"</span>)
+
+<span class="fn">println</span>(file.<span class="fn">readText</span>())
+<span class="cmt">// Line 1</span>
+<span class="cmt">// Line 2</span>
+<span class="cmt">// Line 3</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. USE: SAFE RESOURCE CLEANUP ────────────────────────── -->
+    <section class="section" id="use-function">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🔒</div>
+        <h2>use: Safe Resource Cleanup</h2>
+        <span class="section-tag">Closeable · try-with-resources equivalent</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Any <code class="typ">Closeable</code> or <code class="typ">AutoCloseable</code> — streams, readers, database connections — exposes a <code>use</code> extension function that runs a block and guarantees <code>close()</code> afterward, whether the block finishes normally or throws. It's Kotlin's answer to Java's <code>try</code>-with-resources, expressed as an ordinary function rather than special syntax.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Guaranteed close(), even on exception</span>
+          <span class="card-badge badge-purple">use</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> java.io.File
+
+<span class="cmt">// use { } closes the stream automatically, exactly once,</span>
+<span class="cmt">// after the block completes — success or failure</span>
+<span class="typ">File</span>(<span class="str">"data.txt"</span>).<span class="fn">bufferedReader</span>().<span class="fn">use</span> { reader ->
+    <span class="kw">var</span> line = reader.<span class="fn">readLine</span>()
+    <span class="kw">while</span> (line != <span class="kw">null</span>) {
+        <span class="fn">println</span>(line)
+        line = reader.<span class="fn">readLine</span>()
+    }
+}
+<span class="cmt">// reader.close() has already run here, regardless of what happened above</span>
+
+<span class="cmt">// Nested resources: each use{} closes its own resource on the way out,</span>
+<span class="cmt">// innermost first, same as nested try-with-resources in Java</span>
+<span class="typ">File</span>(<span class="str">"in.txt"</span>).<span class="fn">bufferedReader</span>().<span class="fn">use</span> { input ->
+    <span class="typ">File</span>(<span class="str">"out.txt"</span>).<span class="fn">bufferedWriter</span>().<span class="fn">use</span> { output ->
+        input.<span class="fn">forEachLine</span> { output.<span class="fn">write</span>(<span class="str">"$it\n"</span>) }
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Wrap every manually-opened stream, reader, or writer in <code>use { }</code> — there's essentially no reason not to. Most of the higher-level extensions like <code>readText</code>/<code>writeText</code>/<code>useLines</code> already call <code>use</code> internally, so you only reach for it explicitly once you drop down to a raw stream or reader yourself.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. BUFFERED STREAMS ──────────────────────────────────── -->
+    <section class="section" id="buffered-streams">
+      <div class="section-header">
+        <div class="section-icon icon-gold">📶</div>
+        <h2>Buffered Streams</h2>
+        <span class="section-tag">bufferedReader · bufferedWriter · forEachLine</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">An unbuffered stream reads or writes to disk on every single call, which is slow when you're processing a file byte by byte or line by line. <code>bufferedReader()</code>/<code>bufferedWriter()</code> wrap a raw stream with an in-memory buffer, batching the actual disk I/O — the same idea as Go's <code>bufio.Reader</code>/<code>bufio.Writer</code>. <code>forEachLine</code> combines buffering with iteration in one call for the common case.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">forEachLine: buffered, line-by-line, one call</span>
+          <span class="card-badge badge-gold">forEachLine</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> java.io.File
+
+<span class="cmt">// forEachLine buffers internally and closes the stream when done —</span>
+<span class="cmt">// no explicit use{} needed, it's handled for you</span>
+<span class="typ">File</span>(<span class="str">"large_log.txt"</span>).<span class="fn">forEachLine</span> { line ->
+    <span class="kw">if</span> (line.<span class="fn">contains</span>(<span class="str">"ERROR"</span>)) <span class="fn">println</span>(line)
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Kotlin's <code>bufferedReader()</code>/<code>bufferedWriter()</code> map directly onto Go's <code>bufio.NewReader</code>/<code>bufio.NewWriter</code> — both exist for the same reason, batching small reads/writes into fewer actual syscalls. <code>forEachLine</code> is the closer analogue of Go's <code>bufio.Scanner</code> loop, minus the manual <code>for scanner.Scan()</code> boilerplate.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. THE PATH API ──────────────────────────────────────── -->
+    <section class="section" id="path-api">
+      <div class="section-header">
+        <div class="section-icon icon-red">🗂</div>
+        <h2>The Path API</h2>
+        <span class="section-tag">java.nio.file.Path · Files.* · modern alternative</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code class="typ">java.nio.file.Path</code>, together with the <code class="typ">Files</code> utility class, is Java's more capable successor to <code class="typ">java.io.File</code> — better symlink handling, more granular error types, support for different filesystem providers (including in-memory or zip-backed filesystems). Kotlin doesn't wrap it with the same density of extension functions it gives <code class="typ">File</code>, but it composes fine, and for anything beyond simple read/write, <code class="typ">Path</code> is the more modern foundation to build on.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Path and Files, called from Kotlin</span>
+          <span class="card-badge badge-red">Path / Files</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> java.nio.file.Files
+<span class="kw">import</span> java.nio.file.Path
+<span class="kw">import</span> kotlin.io.path.*   <span class="cmt">// Kotlin's own Path extensions</span>
+
+<span class="kw">val</span> path: <span class="typ">Path</span> = <span class="typ">Path</span>.<span class="fn">of</span>(<span class="str">"data/config.json"</span>)
+
+<span class="cmt">// kotlin.io.path.* adds File-like extension functions onto Path too</span>
+<span class="kw">val</span> text = path.<span class="fn">readText</span>()
+<span class="fn">println</span>(path.<span class="fn">exists</span>())
+<span class="fn">println</span>(path.<span class="fn">extension</span>)   <span class="cmt">// "json"</span>
+
+<span class="cmt">// Files.walk for recursive directory traversal, as a Kotlin Sequence</span>
+<span class="kw">val</span> allJsonFiles = Files.<span class="fn">walk</span>(<span class="typ">Path</span>.<span class="fn">of</span>(<span class="str">"data"</span>))
+    .<span class="fn">toList</span>()
+    .<span class="fn">filter</span> { it.<span class="fn">toString</span>().<span class="fn">endsWith</span>(<span class="str">".json"</span>) }</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>For everyday scripts and small tools, <code class="typ">File</code>'s extension functions are usually enough and read more concisely. Reach for <code class="typ">Path</code>/<code class="typ">Files</code> specifically when you need symbolic link control, atomic move/copy operations, or filesystem abstraction beyond the local disk.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Function</th>
+            <th>Signature Shape</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Read whole file as text</td><td>file.readText()</td><td>Loads everything into memory at once</td></tr>
+          <tr><td>Read whole file as lines</td><td>file.readLines()</td><td>List&lt;String&gt;; also loads everything at once</td></tr>
+          <tr><td>Stream lines lazily</td><td>file.useLines { seq -> ... }</td><td>Sequence only valid inside the block; auto-closes</td></tr>
+          <tr><td>Overwrite file contents</td><td>file.writeText(s)</td><td>Creates the file if it doesn't exist</td></tr>
+          <tr><td>Append to file</td><td>file.appendText(s)</td><td>Adds without touching existing content</td></tr>
+          <tr><td>Guaranteed cleanup</td><td>resource.use { ... }</td><td>Closes even if the block throws</td></tr>
+          <tr><td>Buffered reading</td><td>file.bufferedReader()</td><td>Batches disk reads for efficiency</td></tr>
+          <tr><td>Line-by-line, auto-closed</td><td>file.forEachLine { line -> ... }</td><td>Buffered internally, no explicit use{} needed</td></tr>
+          <tr><td>Modern path type</td><td>Path.of("a/b.txt")</td><td>Successor to File; better symlink/error handling</td></tr>
+          <tr><td>Path extensions</td><td>import kotlin.io.path.*</td><td>Adds File-like functions onto Path</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#reading">1: Reading Files</a></li>
+      <li><a href="#writing">2: Writing Files</a></li>
+      <li><a href="#use-function">3: use: Safe Cleanup</a></li>
+      <li><a href="#buffered-streams">4: Buffered Streams</a></li>
+      <li><a href="#path-api">5: The Path API</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

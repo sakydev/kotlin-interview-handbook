@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Errors &amp; Result | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Errors <span>&amp; Result</span></h1>
+  <p>Exceptions in Kotlin, try as an expression, require/check/error, Result and runCatching, and custom exceptions.</p>
+  <div class="hero-pills">
+    <span>try expression</span>
+    <span>require</span>
+    <span>check</span>
+    <span>error</span>
+    <span>Result&lt;T&gt;</span>
+    <span>runCatching</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html" class="active"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. EXCEPTIONS IN KOTLIN ──────────────────────────────── -->
+    <section class="section" id="exceptions">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🚨</div>
+        <h2>Exceptions in Kotlin</h2>
+        <span class="section-tag">all unchecked · same syntax as Java</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><a href="java-interop.html">Java Interop</a> covers the interop consequence of this: Kotlin has no checked exceptions at all, so the compiler never forces a <code>try</code>/<code>catch</code> or a <code>throws</code> declaration anywhere. <code>throw</code>, <code>try</code>, <code>catch</code>, and <code>finally</code> otherwise look and behave exactly like their Java counterparts — the difference is entirely about what the compiler requires you to handle, not the runtime mechanics of unwinding the stack.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Ordinary throw / try / catch / finally</span>
+          <span class="card-badge badge-blue">try/catch</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">divide</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>): <span class="typ">Int</span> {
+    <span class="kw">if</span> (b == <span class="num">0</span>) <span class="kw">throw</span> <span class="typ">ArithmeticException</span>(<span class="str">"division by zero"</span>)
+    <span class="kw">return</span> a / b
+}
+
+<span class="kw">try</span> {
+    <span class="fn">println</span>(<span class="fn">divide</span>(<span class="num">10</span>, <span class="num">0</span>))
+} <span class="kw">catch</span> (e: <span class="typ">ArithmeticException</span>) {
+    <span class="fn">println</span>(<span class="str">"caught: ${e.message}"</span>)
+} <span class="kw">finally</span> {
+    <span class="fn">println</span>(<span class="str">"cleanup, always runs"</span>)
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 2. TRY AS AN EXPRESSION ───────────────────────────────── -->
+    <section class="section" id="try-expression">
+      <div class="section-header">
+        <div class="section-icon icon-green">🎯</div>
+        <h2>try as an Expression</h2>
+        <span class="section-tag">try-catch evaluates to a value</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Like <code>if</code> and <code>when</code> (see <a href="basics.html">Basics</a>), <code>try</code> can be used as an expression — the whole <code>try</code>/<code>catch</code> block evaluates to a value, with the last expression of whichever branch actually ran (the <code>try</code> body, or a matching <code>catch</code>) becoming the result.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Assigning the result of a try/catch directly</span>
+          <span class="card-badge badge-green">try-expr</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">parseIntOrDefault</span>(input: <span class="typ">String</span>): <span class="typ">Int</span> {
+    <span class="cmt">// The whole try/catch evaluates to a value — no mutable</span>
+    <span class="cmt">// placeholder variable declared above and assigned inside</span>
+    <span class="kw">val</span> result = <span class="kw">try</span> {
+        input.<span class="fn">toInt</span>()
+    } <span class="kw">catch</span> (e: <span class="typ">NumberFormatException</span>) {
+        <span class="num">0</span>
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="fn">println</span>(<span class="fn">parseIntOrDefault</span>(<span class="str">"42"</span>))    <span class="cmt">// 42</span>
+<span class="fn">println</span>(<span class="fn">parseIntOrDefault</span>(<span class="str">"oops"</span>))  <span class="cmt">// 0</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>For the specific case of parsing a number with a fallback, <code>input.toIntOrNull() ?: 0</code> is shorter and avoids exceptions for control flow entirely — reach for the <code>try</code>-expression form when the risky operation doesn't already have a <code>*OrNull()</code> counterpart in the standard library.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. REQUIRE, CHECK, ERROR ─────────────────────────────── -->
+    <section class="section" id="require-check-error">
+      <div class="section-header">
+        <div class="section-icon icon-purple">✅</div>
+        <h2>require, check, error</h2>
+        <span class="section-tag">precondition helpers · fail fast</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">These three are ordinary standard library functions, not keywords, but they read like assertions and are the idiomatic way to fail fast on a broken precondition. They differ in what kind of failure they signal: <code>require</code> for invalid arguments the caller passed in, <code>check</code> for invalid internal state the function itself discovered, and <code>error</code> for an unconditional "this code path should be unreachable."</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">require: validate arguments</span>
+          <span class="card-badge badge-purple">require</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// require throws IllegalArgumentException if the condition is false</span>
+<span class="kw">fun</span> <span class="fn">withdraw</span>(balance: <span class="typ">Int</span>, amount: <span class="typ">Int</span>): <span class="typ">Int</span> {
+    <span class="fn">require</span>(amount > <span class="num">0</span>) { <span class="str">"amount must be positive, got $amount"</span> }
+    <span class="fn">require</span>(amount &lt;= balance) { <span class="str">"insufficient funds: $amount > $balance"</span> }
+    <span class="kw">return</span> balance - amount
+}
+<span class="cmt">// withdraw(100, -5)   // throws: "amount must be positive, got -5"</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">check: validate internal state</span>
+          <span class="card-badge badge-purple">check</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// check throws IllegalStateException — same shape as require,</span>
+<span class="cmt">// but for state the function itself is responsible for, not caller input</span>
+<span class="kw">class</span> <span class="typ">Connection</span> {
+    <span class="kw">private</span> <span class="kw">var</span> connected = <span class="kw">false</span>
+
+    <span class="kw">fun</span> <span class="fn">open</span>() { connected = <span class="kw">true</span> }
+
+    <span class="kw">fun</span> <span class="fn">send</span>(data: <span class="typ">String</span>) {
+        <span class="fn">check</span>(connected) { <span class="str">"cannot send: connection is not open"</span> }
+        <span class="fn">println</span>(<span class="str">"sending: $data"</span>)
+    }
+}
+<span class="cmt">// Connection().send("hi")   // throws: "cannot send: connection is not open"</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">error: unconditional failure</span>
+          <span class="card-badge badge-purple">error</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// error() always throws IllegalStateException — no condition to check,</span>
+<span class="cmt">// used to mark a branch that should be structurally unreachable</span>
+<span class="kw">fun</span> <span class="fn">describe</span>(status: <span class="typ">String</span>): <span class="typ">String</span> = <span class="kw">when</span> (status) {
+    <span class="str">"active"</span>   -> <span class="str">"Active"</span>
+    <span class="str">"inactive"</span> -> <span class="str">"Inactive"</span>
+    <span class="kw">else</span>        -> <span class="fn">error</span>(<span class="str">"unknown status: $status"</span>)
+}
+
+<span class="cmt">// error()'s return type is Nothing, so it type-checks in any position,</span>
+<span class="cmt">// exactly like return/throw fitting on the right side of ?: (see Null Safety)</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>The choice between the three is about whose fault the failure is, not just what exception type comes out: <code>require</code> says "the caller passed something invalid," <code>check</code> says "this object's own state doesn't support this operation right now," and <code>error</code> says "we should never have gotten here at all." Picking the right one makes the failure message meaningful to whoever reads it later, which matters more than it sounds like when debugging a production incident.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. RESULT & RUNCATCHING ──────────────────────────────── -->
+    <section class="section" id="result-runcatching">
+      <div class="section-header">
+        <div class="section-icon icon-gold">📦</div>
+        <h2>Result &amp; runCatching</h2>
+        <span class="section-tag">Result&lt;T&gt; · explicit success/failure</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code class="typ">Result&lt;T&gt;</code> wraps either a successful value or a captured exception in a single return type, making failure part of a function's declared signature instead of an invisible <code>throws</code> that callers might forget to handle. <code>runCatching</code> is the bridge from ordinary throwing code into that world — it runs a block and converts any thrown exception into a <code class="typ">Result.failure</code> instead of letting it propagate.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">runCatching and handling the Result</span>
+          <span class="card-badge badge-gold">runCatching</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">fetchConfig</span>(path: <span class="typ">String</span>): <span class="typ">String</span> {
+    <span class="kw">if</span> (!<span class="typ">File</span>(path).<span class="fn">exists</span>()) <span class="kw">throw</span> <span class="typ">java.io.FileNotFoundException</span>(path)
+    <span class="kw">return</span> <span class="typ">File</span>(path).<span class="fn">readText</span>()
+}
+
+<span class="cmt">// runCatching converts a thrown exception into Result.failure</span>
+<span class="kw">val</span> result: <span class="typ">Result</span>&lt;<span class="typ">String</span>&gt; = <span class="fn">runCatching</span> { <span class="fn">fetchConfig</span>(<span class="str">"config.json"</span>) }
+
+<span class="cmt">// getOrDefault / getOrElse: unwrap with a fallback</span>
+<span class="kw">val</span> config = result.<span class="fn">getOrDefault</span>(<span class="str">"{}"</span>)
+
+<span class="cmt">// getOrNull / exceptionOrNull: unwrap into a nullable pair of outcomes</span>
+result.<span class="fn">getOrNull</span>()?.<span class="fn">let</span> { <span class="fn">println</span>(<span class="str">"loaded: $it"</span>) }
+result.<span class="fn">exceptionOrNull</span>()?.<span class="fn">let</span> { <span class="fn">println</span>(<span class="str">"failed: ${it.message}"</span>) }
+
+<span class="cmt">// fold: handle both branches in one call, no nullable checks needed</span>
+<span class="kw">val</span> message = result.<span class="fn">fold</span>(
+    onSuccess = { <span class="str">"Config: $it"</span> },
+    onFailure = { <span class="str">"Error: ${it.message}"</span> }
+)</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div><code>runCatching</code> catches <code class="typ">Throwable</code>, not just <code class="typ">Exception</code> — that includes serious JVM errors like <code class="typ">OutOfMemoryError</code> that generally shouldn't be silently wrapped into a <code class="typ">Result</code> and handled like an ordinary business-logic failure. It also blindly catches <code class="typ">CancellationException</code> inside a coroutine, which breaks cooperative cancellation the same way a bare <code>catch (e: Exception)</code> does (see <a href="coroutines.html">Coroutines</a>) — avoid wrapping suspending coroutine code in <code>runCatching</code> without re-throwing cancellation.</div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div><code class="typ">Result&lt;T&gt;</code> shines at API boundaries where you want callers to explicitly acknowledge that an operation can fail — a network call, a parse, a validation step — without forcing every caller into a <code>try</code>/<code>catch</code>. For simple internal logic where a thrown exception is genuinely exceptional and expected to propagate, plain exceptions are still the more direct tool.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. CUSTOM EXCEPTIONS ─────────────────────────────────── -->
+    <section class="section" id="custom-exceptions">
+      <div class="section-header">
+        <div class="section-icon icon-red">🏗</div>
+        <h2>Custom Exceptions</h2>
+        <span class="section-tag">extend Exception · carry structured data</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A custom exception is an ordinary class extending <code class="typ">Exception</code> (or a more specific built-in subtype), and because Kotlin classes can hold typed properties directly in their primary constructor, a custom exception can carry structured context — not just a message string — that callers can pattern-match on with <code>when</code> or a specific <code>catch</code> clause.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A domain-specific exception with structured data</span>
+          <span class="card-badge badge-red">Custom exception</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">InsufficientFundsException</span>(
+    <span class="kw">val</span> requested: <span class="typ">Int</span>,
+    <span class="kw">val</span> available: <span class="typ">Int</span>
+) : <span class="typ">Exception</span>(<span class="str">"requested $requested, only $available available"</span>)
+
+<span class="kw">fun</span> <span class="fn">withdraw</span>(balance: <span class="typ">Int</span>, amount: <span class="typ">Int</span>): <span class="typ">Int</span> {
+    <span class="kw">if</span> (amount > balance) {
+        <span class="kw">throw</span> <span class="typ">InsufficientFundsException</span>(requested = amount, available = balance)
+    }
+    <span class="kw">return</span> balance - amount
+}
+
+<span class="kw">try</span> {
+    <span class="fn">withdraw</span>(<span class="num">100</span>, <span class="num">150</span>)
+} <span class="kw">catch</span> (e: <span class="typ">InsufficientFundsException</span>) {
+    <span class="cmt">// The caller gets structured fields, not just a formatted message</span>
+    <span class="fn">println</span>(<span class="str">"short by ${e.requested - e.available}"</span>)
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Build a small hierarchy of custom exceptions when a module has several distinct failure modes callers might want to handle differently — a common base class lets a caller catch broadly with one clause, while structured subclasses let them catch narrowly and inspect specific fields. For a single, simple failure mode, extending <code class="typ">IllegalArgumentException</code>/<code class="typ">IllegalStateException</code> directly, or just reaching for <code>require</code>/<code>check</code>, is often enough — don't build a hierarchy before you have more than one failure mode to distinguish.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Try as an expression</td><td>val x = try { ... } catch (e: E) { ... }</td><td>Evaluates to whichever branch ran</td></tr>
+          <tr><td>Validate an argument</td><td>require(cond) { "message" }</td><td>Throws IllegalArgumentException</td></tr>
+          <tr><td>Validate internal state</td><td>check(cond) { "message" }</td><td>Throws IllegalStateException</td></tr>
+          <tr><td>Unreachable branch</td><td>error("message")</td><td>Always throws; return type is Nothing</td></tr>
+          <tr><td>Nullable parse</td><td>s.toIntOrNull()</td><td>Prefer over try/catch for simple parsing</td></tr>
+          <tr><td>Wrap a throwing call</td><td>runCatching { ... }</td><td>Catches Throwable — avoid around suspend/coroutine code</td></tr>
+          <tr><td>Unwrap with default</td><td>result.getOrDefault(fallback)</td><td>—</td></tr>
+          <tr><td>Unwrap to nullable</td><td>result.getOrNull() / exceptionOrNull()</td><td>Exactly one is non-null</td></tr>
+          <tr><td>Handle both branches</td><td>result.fold(onSuccess, onFailure)</td><td>No nullable checks needed</td></tr>
+          <tr><td>Custom exception</td><td>class E(...) : Exception("msg")</td><td>Constructor properties carry structured context</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#exceptions">1: Exceptions in Kotlin</a></li>
+      <li><a href="#try-expression">2: try as an Expression</a></li>
+      <li><a href="#require-check-error">3: require, check, error</a></li>
+      <li><a href="#result-runcatching">4: Result &amp; runCatching</a></li>
+      <li><a href="#custom-exceptions">5: Custom Exceptions</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
