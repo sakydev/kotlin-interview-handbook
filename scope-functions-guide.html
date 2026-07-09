@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Scope Functions | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Scope <span>Functions</span></h1>
+  <p>let, run, with, apply, also: five ways to execute a block against an object, each differing in receiver and return value.</p>
+  <div class="hero-pills">
+    <span>let</span>
+    <span>run</span>
+    <span>with</span>
+    <span>apply</span>
+    <span>also</span>
+    <span>Decision table</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html" class="active"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. WHAT SCOPE FUNCTIONS ARE ──────────────────────────── -->
+    <section class="section" id="overview">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🎯</div>
+        <h2>What Scope Functions Are</h2>
+        <span class="section-tag">let · run · with · apply · also</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A scope function takes an object, runs a lambda in some context related to it, and returns something — either the object itself or the lambda's result. All five are just ordinary inline extension functions in the standard library, not language keywords; you could write your own equivalent. They exist purely for readability: chaining several operations on one object without repeating its name at every step, or scoping a temporary computation without polluting the surrounding scope with an extra named variable.</p>
+
+      <div class="diagram">
+<pre>              Refers to the object as:     Returns:
+
+  let         it (lambda argument)          lambda result
+  run         this (lambda receiver)        lambda result
+  with        this (lambda receiver)        lambda result
+  apply       this (lambda receiver)        the object itself
+  also        it (lambda argument)          the object itself
+
+  Two axes to remember:
+   - argument (it) vs receiver (this) — how you refer to the object inside
+   - returns lambda result vs returns the object — what the call evaluates to</pre>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>The five names don't need memorizing in isolation — the diagram above is the whole system. Once you know an operation is either <code>it</code>-based or <code>this</code>-based, and either "returns a new value" or "returns the same object," there are exactly five combinations, and four of the five are actually used (there's no <code>this</code>-based, argument-taking, object-returning combination — that gap is filled by <code>also</code> plus a receiver-style call being redundant with <code>apply</code>).</div>
+      </div>
+    </section>
+
+    <!-- ── 2. LET ────────────────────────────────────────────────── -->
+    <section class="section" id="let">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔤</div>
+        <h2>let</h2>
+        <span class="section-tag">it · returns lambda result</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>let</code> refers to the object as <code>it</code> and returns whatever the lambda's last expression evaluates to. It's most at home paired with the null-safety operator <code>?.</code> — running a block only when a nullable value isn't null — and for transforming a value into something else inline, without a separate named intermediate variable.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Null-safe execution and inline transformation</span>
+          <span class="card-badge badge-green">let</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> name: <span class="typ">String</span>? = <span class="fn">getNameFromCache</span>()
+
+<span class="cmt">// Runs only if name isn't null; `it` refers to the non-null String</span>
+name?.<span class="fn">let</span> {
+    <span class="fn">println</span>(<span class="str">"Welcome, $it"</span>)
+}
+
+<span class="cmt">// let's return value is the lambda's last expression —</span>
+<span class="cmt">// useful for transforming inline, without a named temp variable</span>
+<span class="kw">val</span> length: <span class="typ">Int</span>? = name?.<span class="fn">let</span> { it.<span class="fn">trim</span>().<span class="fn">length</span> }
+
+<span class="cmt">// Also common: scoping a value to just the lines that need it</span>
+<span class="kw">val</span> greeting = <span class="fn">computeUserName</span>().<span class="fn">let</span> { userName ->
+    <span class="str">"Hello, $userName!"</span>
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. RUN ────────────────────────────────────────────────── -->
+    <section class="section" id="run">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🏃</div>
+        <h2>run</h2>
+        <span class="section-tag">this · returns lambda result</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>run</code> is <code>let</code>'s receiver-style twin: same return-the-lambda-result behavior, but the object is referred to as <code>this</code> (implicit, usually), so its own members are called without a qualifier. There's also a non-extension form, <code>run { }</code> with no receiver at all, useful purely as a scoped block that evaluates to a value.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Object configuration + computed result in one block</span>
+          <span class="card-badge badge-purple">run</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Connection</span> {
+    <span class="kw">var</span> host: <span class="typ">String</span> = <span class="str">""</span>
+    <span class="kw">var</span> port: <span class="typ">Int</span> = <span class="num">0</span>
+    <span class="kw">fun</span> <span class="fn">isValid</span>() = host.<span class="fn">isNotBlank</span>() && port &gt; <span class="num">0</span>
+}
+
+<span class="cmt">// this is implicit: host/port/isValid() called directly, no qualifier</span>
+<span class="kw">val</span> connectionIsReady = <span class="typ">Connection</span>().<span class="fn">run</span> {
+    host = <span class="str">"localhost"</span>
+    port = <span class="num">5432</span>
+    <span class="fn">isValid</span>()   <span class="cmt">// last expression: run's return value</span>
+}
+<span class="fn">println</span>(connectionIsReady)  <span class="cmt">// true</span>
+
+<span class="cmt">// No-receiver run: just a scoped block that evaluates to a value</span>
+<span class="kw">val</span> config = <span class="fn">run</span> {
+    <span class="kw">val</span> env = <span class="typ">System</span>.<span class="fn">getenv</span>(<span class="str">"ENV"</span>) ?: <span class="str">"dev"</span>
+    <span class="str">"config-$env.json"</span>
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. WITH ───────────────────────────────────────────────── -->
+    <section class="section" id="with">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🤝</div>
+        <h2>with</h2>
+        <span class="section-tag">this · returns lambda result · not an extension</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>with</code> is functionally identical to <code>run</code> — receiver as <code>this</code>, returns the lambda's result — but it's called differently: <code>with(obj) { ... }</code> instead of <code>obj.run { ... }</code>, because <code>with</code> is a plain top-level function taking the object as a parameter, not an extension function on it. It reads best when the object already exists as a variable and you're not chaining off a call that just produced it.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Grouping several calls on an existing object</span>
+          <span class="card-badge badge-gold">with</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> sb = <span class="typ">StringBuilder</span>()
+
+<span class="cmt">// with(sb) reads naturally: "with sb, do the following"</span>
+<span class="kw">val</span> result = <span class="fn">with</span>(sb) {
+    <span class="fn">append</span>(<span class="str">"Hello"</span>)
+    <span class="fn">append</span>(<span class="str">", "</span>)
+    <span class="fn">append</span>(<span class="str">"World"</span>)
+    <span class="fn">toString</span>()   <span class="cmt">// last expression: with's return value</span>
+}
+<span class="fn">println</span>(result)  <span class="cmt">// "Hello, World"</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Because <code>with</code> isn't an extension function, it doesn't chain off a safe call (<code>?.with</code> isn't valid syntax) and can't be used at the end of a fluent call chain. That's the main practical reason to reach for <code>run</code> instead when the receiver is the result of a preceding expression, like <code>?.run { ... }</code> for a nullable value.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. APPLY ──────────────────────────────────────────────── -->
+    <section class="section" id="apply">
+      <div class="section-header">
+        <div class="section-icon icon-red">🛠</div>
+        <h2>apply</h2>
+        <span class="section-tag">this · returns the object · configuration</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>apply</code> refers to the object as <code>this</code>, same as <code>run</code>, but always returns the object itself regardless of the lambda's last expression. This makes it the natural fit for object configuration: build or mutate something, then get the same object back to continue using — the classic replacement for a fluent builder pattern.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Configure-then-return-the-object</span>
+          <span class="card-badge badge-red">apply</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">TextView</span> {
+    <span class="kw">var</span> text: <span class="typ">String</span> = <span class="str">""</span>
+    <span class="kw">var</span> textSize: <span class="typ">Int</span> = <span class="num">12</span>
+    <span class="kw">var</span> color: <span class="typ">String</span> = <span class="str">"black"</span>
+}
+
+<span class="cmt">// apply returns the TextView itself, configured — assignable directly</span>
+<span class="kw">val</span> label = <span class="typ">TextView</span>().<span class="fn">apply</span> {
+    text = <span class="str">"Hello"</span>
+    textSize = <span class="num">18</span>
+    color = <span class="str">"blue"</span>
+}
+<span class="cmt">// label is a TextView, fully configured in one expression</span>
+
+<span class="cmt">// Common at construction time, avoiding a separate configure step</span>
+<span class="kw">val</span> list = <span class="fn">mutableListOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>).<span class="fn">apply</span> {
+    <span class="fn">add</span>(<span class="num">4</span>)
+    <span class="fn">removeAt</span>(<span class="num">0</span>)
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 6. ALSO ───────────────────────────────────────────────── -->
+    <section class="section" id="also">
+      <div class="section-header">
+        <div class="section-icon icon-blue">➕</div>
+        <h2>also</h2>
+        <span class="section-tag">it · returns the object · side effects</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>also</code> is <code>apply</code>'s <code>it</code>-based twin: still returns the object unchanged, but refers to it as <code>it</code> rather than an implicit receiver. That makes it the right choice when the block is a genuine side effect — logging, validation, a debug print — where writing the object's name explicitly (via <code>it</code>) makes the side-effecting call clearer than an implicit <code>this</code> would.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Side effects in the middle of a chain</span>
+          <span class="card-badge badge-blue">also</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = <span class="fn">mutableListOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+    .<span class="fn">also</span> { <span class="fn">println</span>(<span class="str">"Initial: $it"</span>) }   <span class="cmt">// logs, then passes the list along unchanged</span>
+    .<span class="fn">apply</span> { <span class="fn">add</span>(<span class="num">4</span>) }
+    .<span class="fn">also</span> { <span class="fn">println</span>(<span class="str">"After add: $it"</span>) }
+
+<span class="cmt">// Validation as a side effect, still returning the original value</span>
+<span class="kw">fun</span> <span class="fn">createUser</span>(name: <span class="typ">String</span>): <span class="typ">User</span> = <span class="typ">User</span>(name).<span class="fn">also</span> {
+    <span class="fn">require</span>(it.name.<span class="fn">isNotBlank</span>()) { <span class="str">"name can't be blank"</span> }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 7. DECISION TABLE ────────────────────────────────────── -->
+    <section class="section" id="decision-table">
+      <div class="section-header">
+        <div class="section-icon icon-green">📋</div>
+        <h2>Decision Table</h2>
+        <span class="section-tag">which one, when</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Situation</th>
+            <th>Function</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Null-check + act on a nullable value</td><td>let</td><td>Pairs with ?.; it is non-null smart-cast inside</td></tr>
+          <tr><td>Transform a value inline, no temp variable</td><td>let</td><td>Returns the lambda's result</td></tr>
+          <tr><td>Configure a newly-created object, keep it</td><td>apply</td><td>Returns the object itself; this-based for terse member access</td></tr>
+          <tr><td>Run several calls on an existing variable</td><td>with</td><td>Reads as "with X, do Y"; not chainable off ?.</td></tr>
+          <tr><td>Initialize + compute a derived result together</td><td>run</td><td>this-based access, but returns the computed result, not the object</td></tr>
+          <tr><td>Side effect (log, validate) mid-chain</td><td>also</td><td>it makes the side-effecting call's subject explicit</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── 8. IDIOMATIC USES & ABUSES ───────────────────────────── -->
+    <section class="section" id="idiomatic-uses">
+      <div class="section-header">
+        <div class="section-icon icon-purple">⚖️</div>
+        <h2>Idiomatic Uses &amp; Abuses</h2>
+        <span class="section-tag">nesting · overuse · readability</span>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Scope functions compose, but nesting them deeply is a fast way to make code unreadable — several stacked <code>it</code>s from different scope functions shadow each other exactly like nested lambdas do (see <a href="gotchas.html">Gotchas</a>). If a block needs more than one level of scope-function nesting, naming the parameter explicitly at each level (or breaking the chain into named intermediate variables) almost always reads better than leaning further into implicit <code>it</code>/<code>this</code>.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">When a plain variable beats a scope function</span>
+          <span class="card-badge badge-purple">Restraint</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Overused: let adds nothing here except an extra indirection layer</span>
+<span class="kw">val</span> x = <span class="fn">computeValue</span>().<span class="fn">let</span> { it + <span class="num">1</span> }
+
+<span class="cmt">// Clearer: just a plain expression, no scope function needed at all</span>
+<span class="kw">val</span> x2 = <span class="fn">computeValue</span>() + <span class="num">1</span>
+
+<span class="cmt">// Justified: genuinely null-safe transformation, let earns its place</span>
+<span class="kw">val</span> length = maybeString?.<span class="fn">let</span> { it.<span class="fn">trim</span>().<span class="fn">length</span> } ?: <span class="num">0</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for a scope function when it removes real repetition (the object's name, over and over) or expresses real intent (null-safety, configuration, a deliberate side effect). If a scope function's only job is "wrap this one expression," it's usually adding a layer of indirection without adding any actual clarity.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Function</th>
+            <th>Object reference</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>let</td><td>it</td><td>Lambda result</td></tr>
+          <tr><td>run (extension)</td><td>this</td><td>Lambda result</td></tr>
+          <tr><td>run (no receiver)</td><td>n/a</td><td>Lambda result — just a scoped block</td></tr>
+          <tr><td>with(obj) { }</td><td>this</td><td>Lambda result — not an extension function</td></tr>
+          <tr><td>apply</td><td>this</td><td>The object itself</td></tr>
+          <tr><td>also</td><td>it</td><td>The object itself</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#overview">1: What Scope Functions Are</a></li>
+      <li><a href="#let">2: let</a></li>
+      <li><a href="#run">3: run</a></li>
+      <li><a href="#with">4: with</a></li>
+      <li><a href="#apply">5: apply</a></li>
+      <li><a href="#also">6: also</a></li>
+      <li><a href="#decision-table">7: Decision Table</a></li>
+      <li><a href="#idiomatic-uses">8: Idiomatic Uses &amp; Abuses</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

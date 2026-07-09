@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Collections API | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Collections <span>API</span></h1>
+  <p>The operations reference: transform, filter, aggregate, group, order, and the windowing functions, all in one place.</p>
+  <div class="hero-pills">
+    <span>map / flatMap</span>
+    <span>filter</span>
+    <span>fold / reduce</span>
+    <span>groupBy</span>
+    <span>sortedBy</span>
+    <span>zip / windowed / chunked</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html" class="active"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. TRANSFORM: MAP & FLATMAP ──────────────────────────── -->
+    <section class="section" id="transform">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔄</div>
+        <h2>Transform: map &amp; flatMap</h2>
+        <span class="section-tag">map · flatMap · mapNotNull · mapIndexed</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>map</code> applies a transformation to every element, producing a new collection of the same size with different (or differently-typed) contents. <code>flatMap</code> does the same, but expects each transformation to itself produce a collection, and flattens all of those results into a single list — the fix for the "list of lists" that plain <code>map</code> would otherwise leave you with.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">map, mapIndexed, mapNotNull</span>
+          <span class="card-badge badge-blue">map</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+
+<span class="fn">println</span>(numbers.<span class="fn">map</span> { it * it })          <span class="cmt">// [1, 4, 9]</span>
+<span class="fn">println</span>(numbers.<span class="fn">mapIndexed</span> { i, n -> <span class="str">"$i:$n"</span> })  <span class="cmt">// [0:1, 1:2, 2:3]</span>
+
+<span class="cmt">// mapNotNull: transform and drop nulls from the result in one pass</span>
+<span class="kw">val</span> raw = <span class="fn">listOf</span>(<span class="str">"1"</span>, <span class="str">"x"</span>, <span class="str">"3"</span>)
+<span class="fn">println</span>(raw.<span class="fn">mapNotNull</span> { it.<span class="fn">toIntOrNull</span>() })  <span class="cmt">// [1, 3]: "x" silently dropped</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">flatMap: transform then flatten</span>
+          <span class="card-badge badge-blue">flatMap</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Team</span>(<span class="kw">val</span> name: <span class="typ">String</span>, <span class="kw">val</span> members: <span class="typ">List</span>&lt;<span class="typ">String</span>&gt;)
+
+<span class="kw">val</span> teams = <span class="fn">listOf</span>(
+    <span class="typ">Team</span>(<span class="str">"Alpha"</span>, <span class="fn">listOf</span>(<span class="str">"Ada"</span>, <span class="str">"Grace"</span>)),
+    <span class="typ">Team</span>(<span class="str">"Beta"</span>, <span class="fn">listOf</span>(<span class="str">"Linus"</span>))
+)
+
+<span class="cmt">// map would give List<List<String>>: [[Ada, Grace], [Linus]]</span>
+<span class="fn">println</span>(teams.<span class="fn">map</span> { it.members })       <span class="cmt">// [[Ada, Grace], [Linus]]</span>
+
+<span class="cmt">// flatMap flattens the per-team lists into one List<String></span>
+<span class="fn">println</span>(teams.<span class="fn">flatMap</span> { it.members })   <span class="cmt">// [Ada, Grace, Linus]</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 2. FILTER ─────────────────────────────────────────────── -->
+    <section class="section" id="filter">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔍</div>
+        <h2>Filter</h2>
+        <span class="section-tag">filter · filterNot · partition · any/all/none</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Filtering narrows a collection down to the elements matching a predicate, without transforming what survives. Beyond the basic <code>filter</code>/<code>filterNot</code> pair, a few variants save a second pass: <code>partition</code> splits into two lists (matching and non-matching) in one call, and <code>any</code>/<code>all</code>/<code>none</code> answer a yes/no question about the collection instead of returning elements at all.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">filter, filterNot, partition</span>
+          <span class="card-badge badge-green">filter</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = (<span class="num">1</span>..<span class="num">10</span>).<span class="fn">toList</span>()
+
+<span class="fn">println</span>(numbers.<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> })     <span class="cmt">// [2, 4, 6, 8, 10]</span>
+<span class="fn">println</span>(numbers.<span class="fn">filterNot</span> { it % <span class="num">2</span> == <span class="num">0</span> })  <span class="cmt">// [1, 3, 5, 7, 9]</span>
+
+<span class="cmt">// partition: two lists in one pass instead of filtering twice</span>
+<span class="kw">val</span> (evens, odds) = numbers.<span class="fn">partition</span> { it % <span class="num">2</span> == <span class="num">0</span> }
+<span class="fn">println</span>(evens)  <span class="cmt">// [2, 4, 6, 8, 10]</span>
+<span class="fn">println</span>(odds)   <span class="cmt">// [1, 3, 5, 7, 9]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">any, all, none: yes/no questions</span>
+          <span class="card-badge badge-green">any / all / none</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = <span class="fn">listOf</span>(<span class="num">2</span>, <span class="num">4</span>, <span class="num">6</span>)
+
+<span class="fn">println</span>(numbers.<span class="fn">any</span> { it > <span class="num">5</span> })   <span class="cmt">// true: at least one matches</span>
+<span class="fn">println</span>(numbers.<span class="fn">all</span> { it % <span class="num">2</span> == <span class="num">0</span> })  <span class="cmt">// true: every element matches</span>
+<span class="fn">println</span>(numbers.<span class="fn">none</span> { it &lt; <span class="num">0</span> })  <span class="cmt">// true: no element matches</span>
+
+<span class="cmt">// All three short-circuit: any stops at the first match,</span>
+<span class="cmt">// all/none stop at the first counterexample</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. AGGREGATE: FOLD, REDUCE, SUM ──────────────────────── -->
+    <section class="section" id="aggregate">
+      <div class="section-header">
+        <div class="section-icon icon-purple">➕</div>
+        <h2>Aggregate: fold, reduce, sum</h2>
+        <span class="section-tag">fold · reduce · sumOf · count</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Aggregation collapses a collection down to a single value. <code>fold</code> and <code>reduce</code> both walk the collection accumulating a result, but <code>fold</code> takes an explicit starting value (so it works on an empty collection and can produce a different type than the elements), while <code>reduce</code> starts from the first element itself (so it throws on an empty collection, and the result type must match the element type). For the common cases — sum, count, min, max — dedicated functions read more directly than a hand-rolled fold.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">fold vs reduce</span>
+          <span class="card-badge badge-purple">fold / reduce</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>)
+
+<span class="cmt">// fold: explicit starting value, can change the result's type</span>
+<span class="kw">val</span> sum = numbers.<span class="fn">fold</span>(<span class="num">0</span>) { acc, n -> acc + n }
+<span class="fn">println</span>(sum)  <span class="cmt">// 10</span>
+
+<span class="kw">val</span> asText = numbers.<span class="fn">fold</span>(<span class="str">"Numbers:"</span>) { acc, n -> <span class="str">"$acc $n"</span> }
+<span class="fn">println</span>(asText)  <span class="cmt">// "Numbers: 1 2 3 4"</span>
+
+<span class="cmt">// reduce: no starting value, first element seeds the accumulator —</span>
+<span class="cmt">// throws UnsupportedOperationException on an empty collection</span>
+<span class="kw">val</span> product = numbers.<span class="fn">reduce</span> { acc, n -> acc * n }
+<span class="fn">println</span>(product)  <span class="cmt">// 24</span>
+
+<span class="cmt">// emptyList<Int>().fold(0) { a, n -> a + n }  // fine: returns 0</span>
+<span class="cmt">// emptyList<Int>().reduce { a, n -> a + n }   // throws: nothing to seed with</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Dedicated aggregation functions</span>
+          <span class="card-badge badge-purple">sumOf / count / maxOrNull</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Order</span>(<span class="kw">val</span> total: <span class="typ">Double</span>)
+<span class="kw">val</span> orders = <span class="fn">listOf</span>(<span class="typ">Order</span>(<span class="num">19.99</span>), <span class="typ">Order</span>(<span class="num">5.50</span>), <span class="typ">Order</span>(<span class="num">42.00</span>))
+
+<span class="fn">println</span>(orders.<span class="fn">sumOf</span> { it.total })       <span class="cmt">// 67.49</span>
+<span class="fn">println</span>(orders.<span class="fn">count</span> { it.total > <span class="num">10</span> })  <span class="cmt">// 2</span>
+<span class="fn">println</span>(orders.<span class="fn">maxByOrNull</span> { it.total })  <span class="cmt">// Order(total=42.0)</span>
+
+<span class="cmt">// No dedicated "averageBy": map to the field first, then average()</span>
+<span class="fn">println</span>(orders.<span class="fn">map</span> { it.total }.<span class="fn">average</span>())  <span class="cmt">// 22.496666...</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default to <code>sumOf</code>, <code>count</code>, <code>maxByOrNull</code>, and their relatives over a hand-written <code>fold</code> whenever one of them fits — they say exactly what they compute in the name, where a <code>fold</code> requires reading the accumulator lambda to understand the intent.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. GROUP: GROUPBY & ASSOCIATE ────────────────────────── -->
+    <section class="section" id="group">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🗂</div>
+        <h2>Group: groupBy &amp; associate</h2>
+        <span class="section-tag">groupBy · associateBy · associateWith</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>groupBy</code> buckets elements into a <code class="typ">Map</code> keyed by some derived property, where each value is the list of elements sharing that key — the direct equivalent of a "GROUP BY" clause. <code>associate</code> and its variants build a <code class="typ">Map</code> where each original element becomes exactly one entry, useful for turning a list into a lookup table.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">groupBy: bucket into a Map of Lists</span>
+          <span class="card-badge badge-gold">groupBy</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Person</span>(<span class="kw">val</span> name: <span class="typ">String</span>, <span class="kw">val</span> city: <span class="typ">String</span>)
+
+<span class="kw">val</span> people = <span class="fn">listOf</span>(
+    <span class="typ">Person</span>(<span class="str">"Ada"</span>, <span class="str">"London"</span>),
+    <span class="typ">Person</span>(<span class="str">"Grace"</span>, <span class="str">"New York"</span>),
+    <span class="typ">Person</span>(<span class="str">"Alan"</span>, <span class="str">"London"</span>)
+)
+
+<span class="kw">val</span> byCity: <span class="typ">Map</span>&lt;<span class="typ">String</span>, <span class="typ">List</span>&lt;<span class="typ">Person</span>&gt;&gt; = people.<span class="fn">groupBy</span> { it.city }
+<span class="fn">println</span>(byCity[<span class="str">"London"</span>])  <span class="cmt">// [Person(Ada, London), Person(Alan, London)]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">associateBy / associateWith: one entry per element</span>
+          <span class="card-badge badge-gold">associate*</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">User</span>(<span class="kw">val</span> id: <span class="typ">Int</span>, <span class="kw">val</span> name: <span class="typ">String</span>)
+<span class="kw">val</span> users = <span class="fn">listOf</span>(<span class="typ">User</span>(<span class="num">1</span>, <span class="str">"Ada"</span>), <span class="typ">User</span>(<span class="num">2</span>, <span class="str">"Grace"</span>))
+
+<span class="cmt">// associateBy: element becomes the VALUE, key derived from it —</span>
+<span class="cmt">// turns a List<User> into a lookup Map<Int, User></span>
+<span class="kw">val</span> byId: <span class="typ">Map</span>&lt;<span class="typ">Int</span>, <span class="typ">User</span>&gt; = users.<span class="fn">associateBy</span> { it.id }
+<span class="fn">println</span>(byId[<span class="num">1</span>])  <span class="cmt">// User(id=1, name=Ada)</span>
+
+<span class="cmt">// associateWith: element becomes the KEY, value derived from it</span>
+<span class="kw">val</span> nameLengths: <span class="typ">Map</span>&lt;<span class="typ">User</span>, <span class="typ">Int</span>&gt; = users.<span class="fn">associateWith</span> { it.name.length }</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div><code>associateBy</code> keeps only the <em>last</em> element for any duplicate key — earlier entries silently disappear. If duplicate keys are possible and you need every matching element, reach for <code>groupBy</code> instead, which preserves all of them in the value list.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. ORDER: SORTED & SORTEDBY ──────────────────────────── -->
+    <section class="section" id="order">
+      <div class="section-header">
+        <div class="section-icon icon-red">📶</div>
+        <h2>Order: sorted &amp; sortedBy</h2>
+        <span class="section-tag">sorted · sortedBy · sortedWith · reversed</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Every sort function returns a new, sorted collection rather than mutating the receiver — the mutating variants (<code>sort</code>, <code>sortBy</code>) exist separately and only apply to a <code class="typ">MutableList</code>. <code>sorted</code> works on naturally comparable elements; <code>sortedBy</code> sorts by a derived key; <code>sortedWith</code> takes a full <code class="typ">Comparator</code> for anything more elaborate, like multi-field ordering.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">sorted, sortedBy, sortedByDescending</span>
+          <span class="card-badge badge-red">sorted*</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Person</span>(<span class="kw">val</span> name: <span class="typ">String</span>, <span class="kw">val</span> age: <span class="typ">Int</span>)
+<span class="kw">val</span> people = <span class="fn">listOf</span>(<span class="typ">Person</span>(<span class="str">"Grace"</span>, <span class="num">85</span>), <span class="typ">Person</span>(<span class="str">"Ada"</span>, <span class="num">36</span>))
+
+<span class="fn">println</span>(<span class="fn">listOf</span>(<span class="num">3</span>, <span class="num">1</span>, <span class="num">2</span>).<span class="fn">sorted</span>())         <span class="cmt">// [1, 2, 3]: natural ordering</span>
+<span class="fn">println</span>(people.<span class="fn">sortedBy</span> { it.age })       <span class="cmt">// [Ada(36), Grace(85)]</span>
+<span class="fn">println</span>(people.<span class="fn">sortedByDescending</span> { it.age })  <span class="cmt">// [Grace(85), Ada(36)]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">sortedWith: multi-field comparisons</span>
+          <span class="card-badge badge-red">sortedWith</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Employee</span>(<span class="kw">val</span> department: <span class="typ">String</span>, <span class="kw">val</span> name: <span class="typ">String</span>)
+<span class="kw">val</span> employees = <span class="fn">listOf</span>(
+    <span class="typ">Employee</span>(<span class="str">"Eng"</span>, <span class="str">"Bob"</span>), <span class="typ">Employee</span>(<span class="str">"Sales"</span>, <span class="str">"Ann"</span>), <span class="typ">Employee</span>(<span class="str">"Eng"</span>, <span class="str">"Amy"</span>)
+)
+
+<span class="cmt">// compareBy chains multiple sort keys, applied in order</span>
+<span class="kw">val</span> sorted = employees.<span class="fn">sortedWith</span>(
+    <span class="fn">compareBy</span>({ it.department }, { it.name })
+)
+<span class="cmt">// [Employee(Eng, Amy), Employee(Eng, Bob), Employee(Sales, Ann)]</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 6. ZIP, WINDOWED, CHUNKED ────────────────────────────── -->
+    <section class="section" id="windowing">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🪟</div>
+        <h2>zip, windowed, chunked</h2>
+        <span class="section-tag">pairwise combine · sliding window · fixed-size groups</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">These three cover pairwise and grouped access patterns that don't fit map/filter/fold: <code>zip</code> combines two collections element-by-element into pairs (or a custom combination), <code>windowed</code> produces every sliding sub-list of a given size, and <code>chunked</code> splits a collection into fixed-size, non-overlapping groups.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">zip: pairwise combination</span>
+          <span class="card-badge badge-blue">zip</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> names = <span class="fn">listOf</span>(<span class="str">"Ada"</span>, <span class="str">"Grace"</span>, <span class="str">"Alan"</span>)
+<span class="kw">val</span> ages = <span class="fn">listOf</span>(<span class="num">36</span>, <span class="num">85</span>, <span class="num">41</span>)
+
+<span class="cmt">// Default: pairs of (name, age); stops at the shorter collection's length</span>
+<span class="fn">println</span>(names.<span class="fn">zip</span>(ages))  <span class="cmt">// [(Ada, 36), (Grace, 85), (Alan, 41)]</span>
+
+<span class="cmt">// With a combining function instead of the default Pair</span>
+<span class="kw">val</span> summaries = names.<span class="fn">zip</span>(ages) { name, age -> <span class="str">"$name is $age"</span> }
+<span class="fn">println</span>(summaries)  <span class="cmt">// [Ada is 36, Grace is 85, Alan is 41]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">windowed: sliding sub-lists</span>
+          <span class="card-badge badge-blue">windowed</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> prices = <span class="fn">listOf</span>(<span class="num">10</span>, <span class="num">12</span>, <span class="num">9</span>, <span class="num">15</span>, <span class="num">11</span>)
+
+<span class="cmt">// Every overlapping window of size 3</span>
+<span class="fn">println</span>(prices.<span class="fn">windowed</span>(<span class="num">3</span>))
+<span class="cmt">// [[10, 12, 9], [12, 9, 15], [9, 15, 11]]</span>
+
+<span class="cmt">// A common use: a moving average</span>
+<span class="kw">val</span> movingAverage = prices.<span class="fn">windowed</span>(<span class="num">3</span>) { window -> window.<span class="fn">average</span>() }
+<span class="fn">println</span>(movingAverage)  <span class="cmt">// [10.33, 12.0, 11.67]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">chunked: fixed-size, non-overlapping groups</span>
+          <span class="card-badge badge-blue">chunked</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = (<span class="num">1</span>..<span class="num">10</span>).<span class="fn">toList</span>()
+
+<span class="cmt">// Splits into groups of 3; the last group may be smaller</span>
+<span class="fn">println</span>(numbers.<span class="fn">chunked</span>(<span class="num">3</span>))
+<span class="cmt">// [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]</span>
+
+<span class="cmt">// Common use: batching work — e.g. sending 100 items at a time to an API</span>
+numbers.<span class="fn">chunked</span>(<span class="num">3</span>).<span class="fn">forEach</span> { batch -> <span class="fn">println</span>(<span class="str">"processing batch: $batch"</span>) }</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Function</th>
+            <th>Signature Shape</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>map</td><td>list.map { transform }</td><td>Same size, transformed elements</td></tr>
+          <tr><td>flatMap</td><td>list.flatMap { toList }</td><td>Flattens a list-of-lists into one list</td></tr>
+          <tr><td>mapNotNull</td><td>list.mapNotNull { transform }</td><td>Transforms and drops nulls in one pass</td></tr>
+          <tr><td>filter / filterNot</td><td>list.filter { predicate }</td><td>Narrows without transforming</td></tr>
+          <tr><td>partition</td><td>list.partition { predicate }</td><td>Splits into (matching, non-matching) in one pass</td></tr>
+          <tr><td>any / all / none</td><td>list.any { predicate }</td><td>Boolean result; short-circuits</td></tr>
+          <tr><td>fold</td><td>list.fold(initial) { acc, x -> ... }</td><td>Explicit seed; safe on empty collections</td></tr>
+          <tr><td>reduce</td><td>list.reduce { acc, x -> ... }</td><td>Seeds from first element; throws if empty</td></tr>
+          <tr><td>sumOf / count / maxByOrNull</td><td>list.sumOf { it.field }</td><td>Prefer these over hand-written fold when they fit</td></tr>
+          <tr><td>groupBy</td><td>list.groupBy { key }</td><td>Map&lt;Key, List&lt;Element&gt;&gt;, all matches kept</td></tr>
+          <tr><td>associateBy</td><td>list.associateBy { key }</td><td>Map&lt;Key, Element&gt;, last duplicate wins</td></tr>
+          <tr><td>sortedBy</td><td>list.sortedBy { key }</td><td>Ascending by a derived key; returns new list</td></tr>
+          <tr><td>sortedWith</td><td>list.sortedWith(compareBy(...))</td><td>Multi-field ordering via a Comparator</td></tr>
+          <tr><td>zip</td><td>listA.zip(listB) { a, b -> ... }</td><td>Pairwise combine; stops at shorter list</td></tr>
+          <tr><td>windowed</td><td>list.windowed(size)</td><td>Every overlapping sub-list of that size</td></tr>
+          <tr><td>chunked</td><td>list.chunked(size)</td><td>Non-overlapping fixed-size groups</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#transform">1: Transform: map &amp; flatMap</a></li>
+      <li><a href="#filter">2: Filter</a></li>
+      <li><a href="#aggregate">3: Aggregate</a></li>
+      <li><a href="#group">4: Group</a></li>
+      <li><a href="#order">5: Order</a></li>
+      <li><a href="#windowing">6: zip, windowed, chunked</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
