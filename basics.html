@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Basics | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Kotlin <span>Basics</span></h1>
+  <p>val/var, type inference, string templates, when, ranges, loops, functions, and the shape of an idiomatic Kotlin statement.</p>
+  <div class="hero-pills">
+    <span>val / var</span>
+    <span>Type inference</span>
+    <span>String templates</span>
+    <span>when</span>
+    <span>Ranges</span>
+    <span>Loops</span>
+    <span>Functions</span>
+    <span>Expressions</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html" class="active"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. VAL / VAR ──────────────────────────────────────────── -->
+    <section class="section" id="val-var">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔒</div>
+        <h2>val &amp; var</h2>
+        <span class="section-tag">val · var · immutability</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin splits variable declaration into two keywords instead of one. <code>val</code> declares a reference you can assign once; <code>var</code> declares one you can reassign. There's no plain <code>var</code>-only world like Go's <code>:=</code>: you choose mutability at the point of declaration, and the compiler enforces it. This isn't ceremony — it's a design bet that most bindings in a correct program never need to change, and making that visible catches bugs where a value was reassigned by accident.</p>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">val: single assignment</span>
+            <span class="card-badge badge-blue">val</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="cmt">// val binds a reference once; reassignment is a compile error</span>
+<span class="kw">val</span> name = <span class="str">"Ada"</span>
+<span class="kw">val</span> year: <span class="typ">Int</span> = <span class="num">2024</span>
+
+<span class="cmt">// name = "Grace"   // ERROR: val cannot be reassigned</span>
+
+<span class="cmt">// val is not deep immutability: it freezes the REFERENCE,</span>
+<span class="cmt">// not necessarily the object it points to</span>
+<span class="kw">val</span> list = <span class="fn">mutableListOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+list.<span class="fn">add</span>(<span class="num">4</span>)          <span class="cmt">// fine: mutating contents, not the reference</span>
+<span class="cmt">// list = mutableListOf()   // ERROR: can't rebind list itself</span></pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">var: reassignable</span>
+            <span class="card-badge badge-blue">var</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="cmt">// var allows reassignment, same type only</span>
+<span class="kw">var</span> count = <span class="num">0</span>
+count = <span class="num">1</span>
+count += <span class="num">1</span>              <span class="cmt">// 2</span>
+
+<span class="cmt">// count = "two"        // ERROR: type is fixed after inference</span>
+
+<span class="kw">var</span> attempts: <span class="typ">Int</span> = <span class="num">3</span>
+<span class="kw">while</span> (attempts > <span class="num">0</span>) {
+    attempts--
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default to <code>val</code>. Reach for <code>var</code> only when you have a concrete reason to reassign — a loop counter, an accumulator, mutable state you're intentionally modeling. Kotlin style guides and every linter treat an unnecessary <code>var</code> as a smell, because it widens the set of places a bug can hide.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go's <code>:=</code> and <code>var</code> both produce mutable bindings — there's no equivalent of "this can never be reassigned" baked into the syntax itself (you'd reach for a package-level <code>const</code>, which only works for compile-time primitives). Kotlin's <code>val</code> gives you that guarantee for any type, including objects built at runtime.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. TYPE INFERENCE ────────────────────────────────────── -->
+    <section class="section" id="type-inference">
+      <div class="section-header">
+        <div class="section-icon icon-green">🧠</div>
+        <h2>Type Inference</h2>
+        <span class="section-tag">inferred · explicit · Nothing</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin is statically typed, but you rarely write the type out. The compiler infers it from the initializer expression at the declaration site, and that inferred type is then fixed for the life of the binding — this isn't dynamic typing wearing a disguise. You write the type explicitly when the initializer's type is ambiguous, when you want a wider type than what's inferred (like declaring a variable as an interface type even though you're assigning a concrete implementation), or simply for documentation on public API signatures.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Inferred vs explicit types</span>
+          <span class="card-badge badge-green">Inference</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Inferred: the compiler reads the type off the right-hand side</span>
+<span class="kw">val</span> age = <span class="num">30</span>                  <span class="cmt">// Int</span>
+<span class="kw">val</span> price = <span class="num">19.99</span>            <span class="cmt">// Double</span>
+<span class="kw">val</span> label = <span class="str">"widget"</span>          <span class="cmt">// String</span>
+<span class="kw">val</span> ready = <span class="kw">true</span>              <span class="cmt">// Boolean</span>
+
+<span class="cmt">// Explicit: needed when there's no initializer, or you want</span>
+<span class="cmt">// a wider/different type than the default inference</span>
+<span class="kw">val</span> id: <span class="typ">Long</span>                  <span class="cmt">// no initializer: must state the type</span>
+id = <span class="num">42L</span>
+
+<span class="kw">val</span> handler: <span class="typ">Runnable</span> = <span class="typ">Runnable</span> { <span class="fn">println</span>(<span class="str">"run"</span>) }
+<span class="cmt">// declared as the interface, even though the value is a lambda impl</span>
+
+<span class="cmt">// Function return types are inferred for single-expression functions,</span>
+<span class="cmt">// but required on any function with a block body</span>
+<span class="kw">fun</span> <span class="fn">square</span>(n: <span class="typ">Int</span>) = n * n            <span class="cmt">// inferred: Int</span>
+<span class="kw">fun</span> <span class="fn">cube</span>(n: <span class="typ">Int</span>): <span class="typ">Int</span> { <span class="kw">return</span> n * n * n } <span class="cmt">// required</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Numeric literals default to the smallest type that fits idiomatically: whole numbers infer as <code class="typ">Int</code>, decimals as <code class="typ">Double</code>. Use suffixes to widen a literal: <code>42L</code> for <code class="typ">Long</code>, <code>3.14f</code> for <code class="typ">Float</code>, <code>100u</code> for <code class="typ">UInt</code>.</div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>On public functions and properties, write the type explicitly even when inference would work. It's a stable contract for callers, and it stops an accidental change to the implementation from silently widening or narrowing the exposed type.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. STRING TEMPLATES ──────────────────────────────────── -->
+    <section class="section" id="string-templates">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🧵</div>
+        <h2>String Templates</h2>
+        <span class="section-tag">$var · ${expr} · raw strings</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Instead of a separate formatting function, Kotlin lets you embed expressions directly inside string literals. <code>$name</code> substitutes a variable; <code>${expression}</code> substitutes the result of any expression, including method calls. It compiles down to ordinary <code>StringBuilder</code> concatenation, so there's no runtime formatting cost beyond what you'd write by hand — the syntax is just shorter and reads left-to-right the way the output will.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Template syntax</span>
+          <span class="card-badge badge-purple">Templates</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> name = <span class="str">"Ada"</span>
+<span class="kw">val</span> age = <span class="num">36</span>
+
+<span class="cmt">// $var: simple variable substitution</span>
+<span class="fn">println</span>(<span class="str">"Hello, $name! You are $age."</span>)
+<span class="cmt">// prints: Hello, Ada! You are 36.</span>
+
+<span class="cmt">// ${expr}: any expression, including calls and property access</span>
+<span class="fn">println</span>(<span class="str">"Name has ${name.length} letters"</span>)
+<span class="cmt">// prints: Name has 3 letters</span>
+
+<span class="fn">println</span>(<span class="str">"Next year: ${age + 1}"</span>)
+<span class="cmt">// prints: Next year: 37</span>
+
+<span class="cmt">// A literal $ or braces need escaping</span>
+<span class="fn">println</span>(<span class="str">"Price: \$${<span class="num">9.99</span>}"</span>)
+<span class="cmt">// prints: Price: $9.99</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Raw strings (triple-quoted)</span>
+          <span class="card-badge badge-purple">"""</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Triple-quoted strings need no escaping and can span lines</span>
+<span class="kw">val</span> json = <span class="str">"""
+    {
+      "name": "$name",
+      "age": $age
+    }
+"""</span>.<span class="fn">trimIndent</span>()
+
+<span class="cmt">// Great for regexes, since backslashes stay literal</span>
+<span class="kw">val</span> pattern = <span class="str">"""\d{3}-\d{4}"""</span>.<span class="fn">toRegex</span>()
+
+<span class="cmt">// trimIndent() strips the common leading whitespace from every line,</span>
+<span class="cmt">// so you can indent the literal to match surrounding code</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> this replaces <code>fmt.Sprintf("Hello, %s! You are %d.", name, age)</code>. There's no format verb to get wrong — the compiler type-checks the expression inside <code>${}</code> the same way it type-checks any other code, and calling <code>.toString()</code> happens automatically.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. WHEN ───────────────────────────────────────────────── -->
+    <section class="section" id="when">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🔀</div>
+        <h2>when</h2>
+        <span class="section-tag">expression · statement · exhaustive</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>when</code> replaces both the C-style <code>switch</code> and long <code>if</code>/<code>else if</code> chains. It's not restricted to constant cases — each branch can test an arbitrary condition, a type, a range, or a set of values, and it can be used as either a statement (for control flow) or an expression (that produces a value). When used as an expression over a <code>sealed</code> type or an <code>enum</code>, the compiler forces you to cover every case, which turns a whole category of runtime bugs into compile errors.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">when as an expression</span>
+          <span class="card-badge badge-gold">Expression</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> score = <span class="num">82</span>
+
+<span class="cmt">// No "break" needed: branches don't fall through</span>
+<span class="kw">val</span> grade = <span class="kw">when</span> {
+    score >= <span class="num">90</span> -> <span class="str">"A"</span>
+    score >= <span class="num">80</span> -> <span class="str">"B"</span>
+    score >= <span class="num">70</span> -> <span class="str">"C"</span>
+    <span class="kw">else</span>         -> <span class="str">"F"</span>
+}
+<span class="fn">println</span>(grade) <span class="cmt">// B</span>
+
+<span class="cmt">// Matching a subject value against multiple candidates</span>
+<span class="kw">val</span> day = <span class="str">"SAT"</span>
+<span class="kw">val</span> kind = <span class="kw">when</span> (day) {
+    <span class="str">"SAT"</span>, <span class="str">"SUN"</span> -> <span class="str">"weekend"</span>
+    <span class="kw">else</span>          -> <span class="str">"weekday"</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Branch forms: ranges, types, arbitrary conditions</span>
+          <span class="card-badge badge-gold">Patterns</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">describe</span>(x: <span class="typ">Any</span>): <span class="typ">String</span> = <span class="kw">when</span> (x) {
+    <span class="kw">is</span> <span class="typ">Int</span>    -> <span class="str">"int: $x"</span>            <span class="cmt">// type check, x is smart-cast to Int here</span>
+    <span class="kw">is</span> <span class="typ">String</span> -> <span class="str">"string of length ${x.length}"</span>
+    <span class="kw">in</span> <span class="num">1</span>..<span class="num">10</span>  -> <span class="str">"small number"</span>  <span class="cmt">// range check</span>
+    <span class="kw">null</span>       -> <span class="str">"nothing"</span>
+    <span class="kw">else</span>       -> <span class="str">"unknown: $x"</span>
+}
+
+<span class="cmt">// Branches can hold arbitrary boolean expressions too</span>
+<span class="kw">fun</span> <span class="fn">classify</span>(n: <span class="typ">Int</span>) = <span class="kw">when</span> {
+    n < <span class="num">0</span>          -> <span class="str">"negative"</span>
+    n == <span class="num">0</span>         -> <span class="str">"zero"</span>
+    n % <span class="num">2</span> == <span class="num">0</span>    -> <span class="str">"even"</span>
+    <span class="kw">else</span>            -> <span class="str">"odd"</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Exhaustiveness over sealed types and enums</span>
+          <span class="card-badge badge-gold">Exhaustive</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">enum</span> <span class="kw">class</span> <span class="typ">Direction</span> { <span class="typ">NORTH</span>, <span class="typ">SOUTH</span>, <span class="typ">EAST</span>, <span class="typ">WEST</span> }
+
+<span class="cmt">// Used as an expression, when must cover every enum constant.</span>
+<span class="cmt">// Add a new constant later and this fails to compile until you handle it.</span>
+<span class="kw">fun</span> <span class="fn">heading</span>(d: <span class="typ">Direction</span>): <span class="typ">Int</span> = <span class="kw">when</span> (d) {
+    <span class="typ">Direction</span>.<span class="typ">NORTH</span> -> <span class="num">0</span>
+    <span class="typ">Direction</span>.<span class="typ">EAST</span>  -> <span class="num">90</span>
+    <span class="typ">Direction</span>.<span class="typ">SOUTH</span> -> <span class="num">180</span>
+    <span class="typ">Direction</span>.<span class="typ">WEST</span>  -> <span class="num">270</span>
+    <span class="cmt">// no else needed: every constant is covered</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Exhaustive <code>when</code> is one of Kotlin's best interview-relevant habits, and it pairs directly with sealed classes (see <a href="classes-objects.html">Classes &amp; Objects</a>). When a <code>when</code> is used as a statement (its result discarded), the compiler does <em>not</em> require exhaustiveness or an <code>else</code> — only expression position triggers the check. Assign the result to something, even just returning it, to get the safety net.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go's <code>switch</code> doesn't fall through by default either, so the control flow feels familiar. The real difference is that Kotlin's <code>when</code> can be an expression that returns a value, and combined with a <code>sealed</code> hierarchy it gives you exhaustiveness checking that Go's type system has no equivalent for — Go has no sum types, so a missing case in a type switch just silently falls to <code>default</code>.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. RANGES IN CONTROL FLOW ────────────────────────────── -->
+    <section class="section" id="ranges">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📏</div>
+        <h2>Ranges in Control Flow</h2>
+        <span class="section-tag">.. · ..&lt; · downTo · step</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A range is a first-class value describing an interval between two endpoints, and it's the idiomatic replacement for a C-style counting loop. <code>1..5</code> builds an <code>IntRange</code> you can iterate, test membership against with <code>in</code>, or pass around like any other object. The full operator set — construction, step size, and direction — is covered in depth in the <a href="ranges-guide.html">Ranges &amp; Progressions</a> guide; here's what you need to read and write loops.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Range basics</span>
+          <span class="card-badge badge-blue">Ranges</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// 1..5 is inclusive on both ends: 1, 2, 3, 4, 5</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">5</span>) <span class="fn">print</span>(<span class="str">"$i "</span>) <span class="cmt">// 1 2 3 4 5</span>
+
+<span class="cmt">// ..< excludes the end (Kotlin 1.7+); reads like most index loops</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">0</span>..&lt;<span class="num">5</span>) <span class="fn">print</span>(<span class="str">"$i "</span>) <span class="cmt">// 0 1 2 3 4</span>
+
+<span class="cmt">// downTo counts backward</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">5</span> <span class="kw">downTo</span> <span class="num">1</span>) <span class="fn">print</span>(<span class="str">"$i "</span>) <span class="cmt">// 5 4 3 2 1</span>
+
+<span class="cmt">// step changes the increment</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">0</span>..<span class="num">10</span> <span class="kw">step</span> <span class="num">2</span>) <span class="fn">print</span>(<span class="str">"$i "</span>) <span class="cmt">// 0 2 4 6 8 10</span>
+
+<span class="cmt">// in tests membership: no loop involved</span>
+<span class="kw">val</span> valid = <span class="num">7</span> <span class="kw">in</span> <span class="num">1</span>..<span class="num">10</span>   <span class="cmt">// true</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Prefer <code>0..&lt;n</code> over the older <code>0 until n</code> in new Kotlin 2.x code — same behavior, shorter, and it visually mirrors the mathematical half-open interval notation <code>[0, n)</code>.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. LOOPS ──────────────────────────────────────────────── -->
+    <section class="section" id="loops">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔄</div>
+        <h2>Loops</h2>
+        <span class="section-tag">for · while · do-while · labels</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin has the three loop forms you'd expect — <code>for</code>, <code>while</code>, <code>do-while</code> — but no C-style three-clause <code>for (init; cond; step)</code>. <code>for</code> only iterates over something <em>iterable</em>: a range, a collection, or anything exposing an <code>iterator()</code> function. That constraint is deliberate — it removes an entire class of off-by-one bugs that come from hand-rolled counters.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">for: over ranges and collections</span>
+          <span class="card-badge badge-green">for</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> fruits = <span class="fn">listOf</span>(<span class="str">"apple"</span>, <span class="str">"banana"</span>, <span class="str">"cherry"</span>)
+
+<span class="cmt">// Direct element iteration: no index bookkeeping</span>
+<span class="kw">for</span> (fruit <span class="kw">in</span> fruits) {
+    <span class="fn">println</span>(fruit)
+}
+
+<span class="cmt">// withIndex() when you need both</span>
+<span class="kw">for</span> ((index, fruit) <span class="kw">in</span> fruits.<span class="fn">withIndex</span>()) {
+    <span class="fn">println</span>(<span class="str">"$index: $fruit"</span>)
+}
+<span class="cmt">// 0: apple, 1: banana, 2: cherry</span>
+
+<span class="cmt">// indices gives you a range over valid index positions</span>
+<span class="kw">for</span> (i <span class="kw">in</span> fruits.<span class="fn">indices</span>) {
+    <span class="fn">println</span>(<span class="str">"${fruits[i]} at $i"</span>)
+}
+
+<span class="cmt">// Destructuring a Map's entries directly in the loop header</span>
+<span class="kw">val</span> ages = <span class="fn">mapOf</span>(<span class="str">"Ada"</span> <span class="kw">to</span> <span class="num">36</span>, <span class="str">"Grace"</span> <span class="kw">to</span> <span class="num">85</span>)
+<span class="kw">for</span> ((name, age) <span class="kw">in</span> ages) {
+    <span class="fn">println</span>(<span class="str">"$name is $age"</span>)
+}</pre>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">while &amp; do-while</span>
+            <span class="card-badge badge-green">while</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="kw">var</span> n = <span class="num">1</span>
+<span class="kw">while</span> (n < <span class="num">100</span>) {
+    n *= <span class="num">2</span>
+}
+<span class="fn">println</span>(n) <span class="cmt">// 128</span>
+
+<span class="cmt">// do-while runs the body at least once,</span>
+<span class="cmt">// checking the condition after</span>
+<span class="kw">var</span> attempts = <span class="num">0</span>
+<span class="kw">do</span> {
+    attempts++
+} <span class="kw">while</span> (attempts < <span class="num">3</span>)
+<span class="fn">println</span>(attempts) <span class="cmt">// 3</span></pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Labeled break &amp; continue</span>
+            <span class="card-badge badge-green">Labels</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="cmt">// A label lets break/continue target an outer loop</span>
+outer@ <span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">3</span>) {
+    <span class="kw">for</span> (j <span class="kw">in</span> <span class="num">1</span>..<span class="num">3</span>) {
+        <span class="kw">if</span> (j == <span class="num">2</span>) <span class="kw">continue</span>@outer
+        <span class="fn">println</span>(<span class="str">"$i,$j"</span>)
+    }
+}
+<span class="cmt">// 1,1  2,1  3,1  (j==2 skips straight to the next i)</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go's single <code>for</code> keyword covers all three forms by varying its clauses; Kotlin spells them out as <code>for</code>/<code>while</code>/<code>do-while</code>. Kotlin's <code>for</code> is closer to Go's <code>for range</code> than to Go's counting <code>for</code> — there's no direct equivalent of <code>for i := 0; i < n; i++</code> because Kotlin pushes you toward iterating a range instead.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. FUNCTIONS ─────────────────────────────────────────── -->
+    <section class="section" id="functions">
+      <div class="section-header">
+        <div class="section-icon icon-purple">⚙️</div>
+        <h2>Functions</h2>
+        <span class="section-tag">fun · default args · named args · vararg</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Functions are declared with <code>fun</code> and can live at the top level of a file — Kotlin doesn't force every function into a class the way Java does. Two features do a lot of work here: default parameter values remove the need for overloads, and named arguments let a call site read like a sentence regardless of parameter order. Together they largely replace the "builder pattern" and telescoping-constructor problems you'd solve differently in other languages.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Declaration &amp; single-expression form</span>
+          <span class="card-badge badge-purple">fun</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Block body: explicit return type required</span>
+<span class="kw">fun</span> <span class="fn">add</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>): <span class="typ">Int</span> {
+    <span class="kw">return</span> a + b
+}
+
+<span class="cmt">// Single-expression body: "= expr" instead of a block,</span>
+<span class="cmt">// return type is inferred</span>
+<span class="kw">fun</span> <span class="fn">multiply</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>) = a * b
+
+<span class="cmt">// Unit is Kotlin's "no meaningful value" type (like Go's absence</span>
+<span class="cmt">// of a return type). It's almost always omitted.</span>
+<span class="kw">fun</span> <span class="fn">logMessage</span>(msg: <span class="typ">String</span>): <span class="typ">Unit</span> {
+    <span class="fn">println</span>(msg)
+}
+<span class="cmt">// equivalent, and idiomatic:</span>
+<span class="kw">fun</span> <span class="fn">logMessage2</span>(msg: <span class="typ">String</span>) { <span class="fn">println</span>(msg) }</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Default &amp; named arguments</span>
+          <span class="card-badge badge-purple">Defaults</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Parameters can have default values</span>
+<span class="kw">fun</span> <span class="fn">greet</span>(name: <span class="typ">String</span>, greeting: <span class="typ">String</span> = <span class="str">"Hello"</span>, punctuation: <span class="typ">String</span> = <span class="str">"!"</span>) {
+    <span class="fn">println</span>(<span class="str">"$greeting, $name$punctuation"</span>)
+}
+
+<span class="fn">greet</span>(<span class="str">"Ada"</span>)                              <span class="cmt">// Hello, Ada!</span>
+<span class="fn">greet</span>(<span class="str">"Ada"</span>, <span class="str">"Hi"</span>)                        <span class="cmt">// Hi, Ada!</span>
+
+<span class="cmt">// Named arguments: skip earlier defaults, any order, self-documenting</span>
+<span class="fn">greet</span>(name = <span class="str">"Ada"</span>, punctuation = <span class="str">"?!"</span>)   <span class="cmt">// Hello, Ada?!</span>
+<span class="fn">greet</span>(punctuation = <span class="str">"."</span>, name = <span class="str">"Ada"</span>)   <span class="cmt">// order doesn't matter with names</span>
+
+<span class="cmt">// Named args are especially valuable when several params</span>
+<span class="cmt">// share a type: prevents silently swapped arguments</span>
+<span class="kw">fun</span> <span class="fn">createUser</span>(firstName: <span class="typ">String</span>, lastName: <span class="typ">String</span>, isAdmin: <span class="typ">Boolean</span> = <span class="kw">false</span>) { <span class="cmt">/* ... */</span> }
+<span class="fn">createUser</span>(firstName = <span class="str">"Grace"</span>, lastName = <span class="str">"Hopper"</span>, isAdmin = <span class="kw">true</span>)</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">vararg parameters</span>
+          <span class="card-badge badge-purple">vararg</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// vararg collects trailing args into an Array inside the function</span>
+<span class="kw">fun</span> <span class="fn">sum</span>(<span class="kw">vararg</span> numbers: <span class="typ">Int</span>): <span class="typ">Int</span> = numbers.<span class="fn">sum</span>()
+
+<span class="fn">sum</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)        <span class="cmt">// 6</span>
+<span class="fn">sum</span>()                <span class="cmt">// 0: zero args is fine</span>
+
+<span class="cmt">// Spread operator * expands an existing array into vararg position</span>
+<span class="kw">val</span> nums = <span class="fn">intArrayOf</span>(<span class="num">4</span>, <span class="num">5</span>, <span class="num">6</span>)
+<span class="fn">sum</span>(*nums)            <span class="cmt">// 15</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default arguments are why Kotlin code almost never needs Java-style method overloading or the builder pattern for simple cases. A single function with sensible defaults covers what would otherwise be three or four overloaded signatures.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has no default parameter values or named arguments — the usual workaround is a variadic <code>...Option</code> functional-options pattern or a config struct. Kotlin gives you the same ergonomics directly in the function signature, no extra types required.</div>
+      </div>
+    </section>
+
+    <!-- ── 8. EXPRESSIONS VS STATEMENTS ─────────────────────────── -->
+    <section class="section" id="expressions">
+      <div class="section-header">
+        <div class="section-icon icon-red">🧩</div>
+        <h2>Expressions vs Statements</h2>
+        <span class="section-tag">if-expr · when-expr · Unit</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <em>statement</em> is executed for its effect and produces no usable value; an <em>expression</em> evaluates to a value you can assign, pass, or return. In Go, <code>if</code> is purely a statement — you can't write <code>x := if cond { 1 } else { 2 }</code>. In Kotlin, <code>if</code> and <code>when</code> are expressions: they evaluate to a value when every branch supplies one, and this single fact eliminates a lot of pre-declared-mutable-variable boilerplate.</p>
+
+      <div class="diagram">
+<pre>  Statement                       Expression
+
+  if (cond) {                     val x = if (cond) {
+      doWork()                        1
+  }                                } else {
+                                       2
+  → runs for effect                }
+  → produces nothing usable
+
+                                   → evaluates to a value
+                                   → assignable, returnable, passable</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">if as an expression</span>
+          <span class="card-badge badge-red">if-expr</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> a = <span class="num">10</span>
+<span class="kw">val</span> b = <span class="num">20</span>
+
+<span class="cmt">// The old way: mutable placeholder, reassigned in each branch</span>
+<span class="kw">var</span> max: <span class="typ">Int</span>
+<span class="kw">if</span> (a > b) {
+    max = a
+} <span class="kw">else</span> {
+    max = b
+}
+
+<span class="cmt">// Idiomatic: if is an expression, both branches must produce a value</span>
+<span class="kw">val</span> max2 = <span class="kw">if</span> (a > b) a <span class="kw">else</span> b
+
+<span class="cmt">// Kotlin has no ternary operator (cond ? a : b): if-expression is it</span>
+<span class="kw">val</span> label = <span class="kw">if</span> (max2 % <span class="num">2</span> == <span class="num">0</span>) <span class="str">"even"</span> <span class="kw">else</span> <span class="str">"odd"</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Returning from a function directly</span>
+          <span class="card-badge badge-red">return</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// A single-expression function body is itself an expression,</span>
+<span class="cmt">// so an if/when as the body needs no explicit "return"</span>
+<span class="kw">fun</span> <span class="fn">max</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>) = <span class="kw">if</span> (a > b) a <span class="kw">else</span> b
+
+<span class="kw">fun</span> <span class="fn">sign</span>(n: <span class="typ">Int</span>) = <span class="kw">when</span> {
+    n > <span class="num">0</span>  -> <span class="num">1</span>
+    n < <span class="num">0</span>  -> -<span class="num">1</span>
+    <span class="kw">else</span>   -> <span class="num">0</span>
+}
+
+<span class="cmt">// Everything (even a block) technically has a type in Kotlin;</span>
+<span class="cmt">// statements like assignments and loops evaluate to Unit,</span>
+<span class="cmt">// the type with exactly one value, roughly Go's absence of a result</span>
+<span class="kw">val</span> nothingUseful: <span class="typ">Unit</span> = <span class="fn">println</span>(<span class="str">"side effect"</span>)</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Preferring expressions over statements is one of the clearest "idiomatic Kotlin" signals interviewers look for. It usually means fewer <code>var</code> declarations, less repeated logic across branches, and functions that read as a single flow of data instead of a sequence of imperative steps.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> this is the single biggest syntactic mental shift coming from Go. Go deliberately keeps <code>if</code>/<code>switch</code> as statements to keep control flow uniform and easy to scan; Kotlin trades that uniformity for the ability to compute a value inline. Neither is wrong — but expect to unlearn the "declare mutable, then branch-assign" reflex.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Immutable binding</td><td>val x = 1</td><td>Reference fixed; contents may still be mutable</td></tr>
+          <tr><td>Mutable binding</td><td>var x = 1</td><td>Reassignable, type fixed after inference</td></tr>
+          <tr><td>Explicit type</td><td>val x: Int = 1</td><td>Required when there's no initializer</td></tr>
+          <tr><td>String template</td><td>"Hi $name"</td><td>Use ${expr} for anything beyond a bare identifier</td></tr>
+          <tr><td>Raw string</td><td>"""text"""</td><td>No escaping needed; pair with .trimIndent()</td></tr>
+          <tr><td>when expression</td><td>val x = when(y) { ... }</td><td>Exhaustive over sealed/enum in expression position</td></tr>
+          <tr><td>Range (inclusive)</td><td>1..5</td><td>1,2,3,4,5</td></tr>
+          <tr><td>Range (exclusive end)</td><td>0..&lt;5</td><td>0,1,2,3,4 — Kotlin 1.7+</td></tr>
+          <tr><td>Reverse range</td><td>5 downTo 1</td><td>5,4,3,2,1</td></tr>
+          <tr><td>Stepped range</td><td>0..10 step 2</td><td>0,2,4,6,8,10</td></tr>
+          <tr><td>Membership test</td><td>x in 1..10</td><td>No loop; boolean expression</td></tr>
+          <tr><td>Indexed loop</td><td>for ((i, v) in list.withIndex())</td><td>Avoids manual index bookkeeping</td></tr>
+          <tr><td>Labeled break</td><td>break@outer</td><td>Targets an outer labeled loop</td></tr>
+          <tr><td>Single-expression function</td><td>fun f(x: Int) = x * 2</td><td>Return type inferred</td></tr>
+          <tr><td>Default parameter</td><td>fun f(x: Int = 0)</td><td>Removes need for overloads</td></tr>
+          <tr><td>Named argument</td><td>f(x = 1, y = 2)</td><td>Any order; self-documenting at call site</td></tr>
+          <tr><td>Variadic parameter</td><td>fun f(vararg xs: Int)</td><td>xs is Array&lt;Int&gt; inside f</td></tr>
+          <tr><td>Spread operator</td><td>f(*array)</td><td>Expands an array into vararg position</td></tr>
+          <tr><td>if as expression</td><td>val x = if (c) a else b</td><td>Kotlin's ternary substitute</td></tr>
+          <tr><td>No-value type</td><td>Unit</td><td>Roughly Go's absence of a return type</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#val-var">1: val &amp; var</a></li>
+      <li><a href="#type-inference">2: Type Inference</a></li>
+      <li><a href="#string-templates">3: String Templates</a></li>
+      <li><a href="#when">4: when</a></li>
+      <li><a href="#ranges">5: Ranges in Control Flow</a></li>
+      <li><a href="#loops">6: Loops</a></li>
+      <li><a href="#functions">7: Functions</a></li>
+      <li><a href="#expressions">8: Expressions vs Statements</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

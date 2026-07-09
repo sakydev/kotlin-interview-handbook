@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Interview Handbook | Saqib Razzaq</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ HERO -->
+<div class="hero">
+  <h1>Kotlin <span>Ultimate</span> Handbook</h1>
+  <p>Learn Kotlin properly. From zero to interview ready.</p>
+  <p style="font-size:.8rem;color:var(--muted);margin-top:-8px;margin-bottom:16px">by Saqib Razzaq</p>
+  <div class="hero-pills">
+    <span>11 language topics</span>
+    <span>11 library guides</span>
+    <span>Open source</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT: Package Nav -->
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link active">Kotlin Handbook</a>
+
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- Language -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <h2>Language</h2>
+        <span>Core Kotlin concepts, taught from a Go background — read top to bottom if you're new</span>
+      </div>
+      <div class="card-grid">
+
+        <a href="basics.html" class="topic-card">
+          <div class="tc-icon">📖</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Basics</span>
+            </div>
+            <p class="tc-desc">val/var, type inference, string templates, when, ranges, loops, functions, default and named args.</p>
+            <div class="tc-tags">
+              <span>val/var</span><span>when</span><span>Ranges</span><span>Functions</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="null-safety.html" class="topic-card soon">
+          <div class="tc-icon">🛡</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Null Safety</span>
+            </div>
+            <p class="tc-desc">?., ?:, !!, safe casts, smart casts, lateinit vs lazy, platform types, nullable collections.</p>
+            <div class="tc-tags">
+              <span>?.</span><span>?:</span><span>Smart casts</span><span>lateinit</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="functions-lambdas.html" class="topic-card soon">
+          <div class="tc-icon">λ</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Functions &amp; Lambdas</span>
+            </div>
+            <p class="tc-desc">Higher-order functions, lambda syntax, trailing lambdas, extension functions, inline, operator overloading.</p>
+            <div class="tc-tags">
+              <span>Lambdas</span><span>Extensions</span><span>inline</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="classes-objects.html" class="topic-card soon">
+          <div class="tc-icon">🏛</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Classes &amp; Objects</span>
+            </div>
+            <p class="tc-desc">Constructors, data classes, sealed classes, enums, object and companion object, delegation with by.</p>
+            <div class="tc-tags">
+              <span>data class</span><span>sealed</span><span>object</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="generics.html" class="topic-card soon">
+          <div class="tc-icon">🧬</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Generics</span>
+            </div>
+            <p class="tc-desc">Type parameters, variance with in/out, star projection, reified type parameters, type erasure.</p>
+            <div class="tc-tags">
+              <span>in/out</span><span>reified</span><span>Erasure</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="collections.html" class="topic-card soon">
+          <div class="tc-icon">📦</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Collections</span>
+            </div>
+            <p class="tc-desc">List/Set/Map, read-only vs mutable interfaces, construction, iteration, destructuring, Array vs List.</p>
+            <div class="tc-tags">
+              <span>List</span><span>Map</span><span>Mutable vs read-only</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="coroutines.html" class="topic-card soon">
+          <div class="tc-icon">🔀</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Coroutines</span>
+            </div>
+            <p class="tc-desc">suspend, launch/async, structured concurrency, scopes, dispatchers, cancellation, channels, Flow intro.</p>
+            <div class="tc-tags">
+              <span>suspend</span><span>launch</span><span>Scopes</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="testing.html" class="topic-card soon">
+          <div class="tc-icon">🧪</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Testing</span>
+            </div>
+            <p class="tc-desc">kotlin.test and JUnit 5, parameterized tests, MockK basics, runTest for coroutines.</p>
+            <div class="tc-tags">
+              <span>JUnit 5</span><span>MockK</span><span>runTest</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="java-interop.html" class="topic-card soon">
+          <div class="tc-icon">☕</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Java Interop</span>
+            </div>
+            <p class="tc-desc">Calling Java from Kotlin, platform types, @JvmStatic/@JvmOverloads, SAM conversions, checked exceptions.</p>
+            <div class="tc-tags">
+              <span>Platform types</span><span>@Jvm*</span><span>SAM</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="performance.html" class="topic-card soon">
+          <div class="tc-icon">⚡</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Performance</span>
+            </div>
+            <p class="tc-desc">Inline functions, value classes, boxing on the JVM, sequences vs collections, tailrec, const.</p>
+            <div class="tc-tags">
+              <span>inline</span><span>value class</span><span>Boxing</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="gotchas.html" class="topic-card soon">
+          <div class="tc-icon">⚠️</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Gotchas</span>
+            </div>
+            <p class="tc-desc">== vs ===, data class copy with var, mutable state behind read-only interfaces, non-local returns, and more.</p>
+            <div class="tc-tags">
+              <span>==/===</span><span>copy</span><span>Scope misuse</span>
+            </div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- Standard Library -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <h2>Standard Library</h2>
+        <span>The stdlib you'll reach for daily</span>
+      </div>
+      <div class="card-grid">
+
+        <a href="strings-guide.html" class="topic-card soon">
+          <div class="tc-icon">🔤</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">kotlin.text</span>
+            </div>
+            <p class="tc-desc">Searching, splitting, replacing, trimming, padding, buildString, raw strings, Regex.</p>
+            <div class="tc-tags">
+              <span>split</span><span>buildString</span><span>Regex</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="collections-api-guide.html" class="topic-card soon">
+          <div class="tc-icon">📊</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Collections API</span>
+            </div>
+            <p class="tc-desc">map/flatMap, filter, fold/reduce/sum, groupBy/associate, sortedBy, zip/windowed/chunked.</p>
+            <div class="tc-tags">
+              <span>map</span><span>fold</span><span>groupBy</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="sequences-guide.html" class="topic-card soon">
+          <div class="tc-icon">🌊</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Sequences</span>
+            </div>
+            <p class="tc-desc">Lazy evaluation, asSequence, generateSequence, intermediate vs terminal ops, when sequences win.</p>
+            <div class="tc-tags">
+              <span>Lazy</span><span>asSequence</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="scope-functions-guide.html" class="topic-card soon">
+          <div class="tc-icon">🎯</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Scope Functions</span>
+            </div>
+            <p class="tc-desc">let, run, with, apply, also: receiver vs argument, return value, a decision table.</p>
+            <div class="tc-tags">
+              <span>let</span><span>apply</span><span>also</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="ranges-guide.html" class="topic-card soon">
+          <div class="tc-icon">📏</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Ranges &amp; Progressions</span>
+            </div>
+            <p class="tc-desc">.., ..&lt;, downTo, step, in checks, ranges over chars and comparables.</p>
+            <div class="tc-tags">
+              <span>..</span><span>downTo</span><span>step</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="delegates-guide.html" class="topic-card soon">
+          <div class="tc-icon">🎁</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Delegated Properties</span>
+            </div>
+            <p class="tc-desc">lazy, observable, vetoable, map-backed properties, writing a custom delegate.</p>
+            <div class="tc-tags">
+              <span>lazy</span><span>observable</span><span>Custom</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="io-guide.html" class="topic-card soon">
+          <div class="tc-icon">📁</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Files &amp; IO</span>
+            </div>
+            <p class="tc-desc">File extensions: readText, readLines, useLines, writeText, buffered streams, Path API.</p>
+            <div class="tc-tags">
+              <span>readText</span><span>use</span><span>Path</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="errors-guide.html" class="topic-card soon">
+          <div class="tc-icon">🚨</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Errors &amp; Result</span>
+            </div>
+            <p class="tc-desc">Exceptions in Kotlin, try as expression, require/check/error, Result and runCatching.</p>
+            <div class="tc-tags">
+              <span>require</span><span>Result</span><span>runCatching</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="time-guide.html" class="topic-card soon">
+          <div class="tc-icon">⏱</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Time</span>
+            </div>
+            <p class="tc-desc">kotlin.time.Duration, measureTime, kotlinx-datetime, java.time interop.</p>
+            <div class="tc-tags">
+              <span>Duration</span><span>Instant</span><span>java.time</span>
+            </div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- kotlinx -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <h2>kotlinx</h2>
+        <span>Official multiplatform libraries beyond the JDK stdlib</span>
+      </div>
+      <div class="card-grid">
+
+        <a href="flow-guide.html" class="topic-card soon">
+          <div class="tc-icon">🌀</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Flow</span>
+            </div>
+            <p class="tc-desc">Cold flows, builders, operators, flowOn, exception handling, StateFlow vs SharedFlow.</p>
+            <div class="tc-tags">
+              <span>Flow</span><span>StateFlow</span><span>flowOn</span>
+            </div>
+          </div>
+        </a>
+
+        <a href="serialization-guide.html" class="topic-card soon">
+          <div class="tc-icon">🔌</div>
+          <div class="tc-body">
+            <div class="tc-header">
+              <span class="tc-title">Serialization</span>
+            </div>
+            <p class="tc-desc">@Serializable, Json.encodeToString/decodeFromString, custom names, default values, polymorphism.</p>
+            <div class="tc-tags">
+              <span>@Serializable</span><span>Json</span>
+            </div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
