@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Time | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Time</h1>
+  <p>kotlin.time.Duration, measureTime, kotlinx-datetime, and interop with java.time.</p>
+  <div class="hero-pills">
+    <span>Duration</span>
+    <span>measureTime</span>
+    <span>Instant</span>
+    <span>LocalDateTime</span>
+    <span>TimeZone</span>
+    <span>java.time</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html" class="active"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. KOTLIN.TIME.DURATION ───────────────────────────────── -->
+    <section class="section" id="duration">
+      <div class="section-header">
+        <div class="section-icon icon-blue">⏱</div>
+        <h2>kotlin.time.Duration</h2>
+        <span class="section-tag">value class · unit-safe · .seconds / .milliseconds</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code class="typ">Duration</code> represents a span of time — not a point in time — and it exists specifically to stop bugs caused by an unlabeled <code class="typ">Long</code> that might mean milliseconds, seconds, or nanoseconds depending on which API you're calling. It's a <a href="performance.html">value class</a> under the hood, so wrapping a number this way costs essentially nothing at runtime while making unit mismatches a compile-time impossibility.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Building and comparing durations</span>
+          <span class="card-badge badge-blue">Duration</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlin.time.Duration.Companion.seconds
+<span class="kw">import</span> kotlin.time.Duration.Companion.milliseconds
+<span class="kw">import</span> kotlin.time.Duration.Companion.minutes
+
+<span class="cmt">// Extension properties on Int/Long build a Duration directly —</span>
+<span class="cmt">// the unit is part of the value, not a separate parameter to misread</span>
+<span class="kw">val</span> timeout = <span class="num">30</span>.seconds
+<span class="kw">val</span> pollInterval = <span class="num">500</span>.milliseconds
+<span class="kw">val</span> sessionLength = <span class="num">15</span>.minutes
+
+<span class="cmt">// Arithmetic and comparison work directly, unit conversion is automatic</span>
+<span class="kw">val</span> total = timeout + pollInterval
+<span class="fn">println</span>(total)               <span class="cmt">// 30.5s</span>
+<span class="fn">println</span>(total &lt; sessionLength)  <span class="cmt">// true</span>
+
+<span class="cmt">// Convert to a specific unit only when an external API demands a raw number</span>
+<span class="fn">println</span>(timeout.<span class="fn">inWholeMilliseconds</span>)  <span class="cmt">// 30000</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> <code class="typ">Duration</code> maps directly onto Go's <code>time.Duration</code> — both are a typed wrapper around a raw number specifically to prevent "was that milliseconds or seconds?" bugs, and both offer unit-labeled constructors (<code>30 * time.Second</code> vs Kotlin's <code>30.seconds</code>).</div>
+      </div>
+    </section>
+
+    <!-- ── 2. MEASURETIME & MEASURETIMEDVALUE ───────────────────── -->
+    <section class="section" id="measure-time">
+      <div class="section-header">
+        <div class="section-icon icon-green">⏲</div>
+        <h2>measureTime &amp; measureTimedValue</h2>
+        <span class="section-tag">benchmarking a block</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Timing a block of code by hand means capturing <code>System.nanoTime()</code> before and after and subtracting — easy to get slightly wrong, and it returns a raw <code class="typ">Long</code> with no unit attached. <code>measureTime</code> wraps that pattern and returns a proper <code class="typ">Duration</code> directly; <code>measureTimedValue</code> does the same but also keeps the block's actual return value alongside the timing.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Timing a computation</span>
+          <span class="card-badge badge-green">measureTime</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlin.time.measureTime
+<span class="kw">import</span> kotlin.time.measureTimedValue
+
+<span class="cmt">// measureTime: just the duration, block's result discarded</span>
+<span class="kw">val</span> elapsed = <span class="fn">measureTime</span> {
+    (<span class="num">1</span>..<span class="num">1_000_000</span>).<span class="fn">sum</span>()
+}
+<span class="fn">println</span>(<span class="str">"took $elapsed"</span>)  <span class="cmt">// e.g. "took 8.2ms"</span>
+
+<span class="cmt">// measureTimedValue: both the duration AND the block's result</span>
+<span class="kw">val</span> (result, duration) = <span class="fn">measureTimedValue</span> {
+    (<span class="num">1</span>..<span class="num">1_000_000</span>).<span class="fn">sum</span>()
+}
+<span class="fn">println</span>(<span class="str">"result=$result, took=$duration"</span>)</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. KOTLINX-DATETIME: INSTANT & LOCALDATETIME ─────────── -->
+    <section class="section" id="datetime">
+      <div class="section-header">
+        <div class="section-icon icon-purple">📅</div>
+        <h2>kotlinx-datetime: Instant &amp; LocalDateTime</h2>
+        <span class="section-tag">multiplatform · point in time vs civil time</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">kotlinx-datetime is the official multiplatform date/time library — needed because <code class="typ">java.time</code> only exists on the JVM, and Kotlin/JS and Kotlin/Native have nothing equivalent built in. Its central distinction mirrors <code class="typ">java.time</code>'s own: <code class="typ">Instant</code> is an unambiguous point on the global timeline (nanoseconds since the epoch), while <code class="typ">LocalDateTime</code> is "civil time" — a date and time with no attached time zone, the kind of value a calendar app shows you.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Instant: an unambiguous moment</span>
+          <span class="card-badge badge-purple">Instant</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.datetime.Clock
+<span class="kw">import</span> kotlinx.datetime.Instant
+
+<span class="cmt">// Clock.System.now() returns the current Instant — same moment</span>
+<span class="cmt">// everywhere on Earth, regardless of the caller's time zone</span>
+<span class="kw">val</span> now: <span class="typ">Instant</span> = <span class="typ">Clock</span>.<span class="typ">System</span>.<span class="fn">now</span>()
+
+<span class="kw">val</span> later = now + <span class="fn">kotlin</span>.<span class="fn">time</span>.<span class="typ">Duration</span>.<span class="fn">parse</span>(<span class="str">"1h"</span>)
+<span class="fn">println</span>(later > now)  <span class="cmt">// true: Instants compare directly, no ambiguity</span>
+
+<span class="kw">val</span> parsed = <span class="typ">Instant</span>.<span class="fn">parse</span>(<span class="str">"2024-03-15T10:30:00Z"</span>)  <span class="cmt">// ISO-8601, "Z" = UTC</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">LocalDateTime: civil time, no time zone</span>
+          <span class="card-badge badge-purple">LocalDateTime</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.datetime.LocalDateTime
+<span class="kw">import</span> kotlinx.datetime.toLocalDateTime
+<span class="kw">import</span> kotlinx.datetime.TimeZone
+
+<span class="cmt">// "March 15th, 2024, 10:30 AM" — meaningless without a time zone</span>
+<span class="cmt">// to say WHERE that clock reading applies</span>
+<span class="kw">val</span> civilTime = <span class="typ">LocalDateTime</span>(<span class="num">2024</span>, <span class="num">3</span>, <span class="num">15</span>, <span class="num">10</span>, <span class="num">30</span>)
+<span class="fn">println</span>(civilTime)  <span class="cmt">// 2024-03-15T10:30</span>
+
+<span class="cmt">// An Instant only becomes civil time once you attach a zone</span>
+<span class="kw">val</span> now = kotlinx.datetime.Clock.System.<span class="fn">now</span>()
+<span class="kw">val</span> localNow = now.<span class="fn">toLocalDateTime</span>(<span class="typ">TimeZone</span>.<span class="fn">currentSystemDefault</span>())
+<span class="fn">println</span>(localNow)</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Store and compare timestamps as <code class="typ">Instant</code>; only convert to <code class="typ">LocalDateTime</code> at the point where you're displaying a value to a human in a specific place. Mixing the two — comparing a <code class="typ">LocalDateTime</code> from one zone against one from another as if they were on the same timeline — is a recurring source of off-by-hours bugs in date/time code across every language, not just Kotlin.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. TIMEZONE ──────────────────────────────────────────── -->
+    <section class="section" id="timezone">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🌍</div>
+        <h2>TimeZone</h2>
+        <span class="section-tag">IANA identifiers · currentSystemDefault</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code class="typ">TimeZone</code> is what converts between an unambiguous <code class="typ">Instant</code> and a zone-specific <code class="typ">LocalDateTime</code>, in both directions. It's identified by IANA database names like <code>"America/New_York"</code> — never by a fixed UTC offset alone, since a named zone accounts for daylight saving transitions that a plain offset can't.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Converting between Instant and a specific zone</span>
+          <span class="card-badge badge-gold">TimeZone</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.datetime.*
+
+<span class="kw">val</span> now = Clock.System.<span class="fn">now</span>()
+
+<span class="kw">val</span> tokyo = TimeZone.<span class="fn">of</span>(<span class="str">"Asia/Tokyo"</span>)
+<span class="kw">val</span> newYork = TimeZone.<span class="fn">of</span>(<span class="str">"America/New_York"</span>)
+
+<span class="cmt">// Same Instant, different LocalDateTime depending on the zone</span>
+<span class="fn">println</span>(now.<span class="fn">toLocalDateTime</span>(tokyo))
+<span class="fn">println</span>(now.<span class="fn">toLocalDateTime</span>(newYork))
+
+<span class="cmt">// The reverse: interpret civil time AS a specific zone, get back an Instant</span>
+<span class="kw">val</span> meetingTime = LocalDateTime(<span class="num">2024</span>, <span class="num">3</span>, <span class="num">15</span>, <span class="num">9</span>, <span class="num">0</span>)
+<span class="kw">val</span> meetingInstant = meetingTime.<span class="fn">toInstant</span>(newYork)</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. JAVA.TIME INTEROP ─────────────────────────────────── -->
+    <section class="section" id="java-time-interop">
+      <div class="section-header">
+        <div class="section-icon icon-red">☕</div>
+        <h2>java.time Interop</h2>
+        <span class="section-tag">toJavaInstant · toKotlinLocalDateTime</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">On the JVM specifically, plenty of existing libraries (JDBC drivers, older APIs) still speak <code class="typ">java.time</code> types directly. kotlinx-datetime provides explicit conversion functions rather than making its own types secretly interchangeable with Java's, which keeps the conversion visible in the code wherever it happens.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Converting at a JVM interop boundary</span>
+          <span class="card-badge badge-red">toJavaInstant / toKotlinInstant</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.datetime.Clock
+<span class="kw">import</span> kotlinx.datetime.toJavaInstant
+<span class="kw">import</span> kotlinx.datetime.toKotlinInstant
+<span class="kw">import</span> java.time.Instant <span class="kw">as</span> JavaInstant
+
+<span class="kw">val</span> kotlinNow = Clock.System.<span class="fn">now</span>()
+
+<span class="cmt">// kotlinx.datetime.Instant -> java.time.Instant, for a Java-facing API</span>
+<span class="kw">val</span> javaInstant: JavaInstant = kotlinNow.<span class="fn">toJavaInstant</span>()
+
+<span class="cmt">// java.time.Instant -> kotlinx.datetime.Instant, coming back the other way</span>
+<span class="kw">val</span> backToKotlin = javaInstant.<span class="fn">toKotlinInstant</span>()</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>For a pure JVM-only project with no plans to target Kotlin/JS or Kotlin/Native, using <code class="typ">java.time</code> directly (via ordinary <a href="java-interop.html">Java interop</a>, no special Kotlin wrapping needed) is a perfectly reasonable choice and avoids an extra dependency. Reach for kotlinx-datetime specifically when multiplatform support matters, or when its API ergonomics (like <code class="typ">Duration</code> integration) are worth the added dependency on a JVM-only project too.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Build a Duration</td><td>30.seconds / 500.milliseconds</td><td>Unit is part of the value, not a separate parameter</td></tr>
+          <tr><td>Convert to raw units</td><td>duration.inWholeMilliseconds</td><td>Only needed at an API boundary demanding a raw number</td></tr>
+          <tr><td>Time a block</td><td>measureTime { ... }</td><td>Returns a Duration directly</td></tr>
+          <tr><td>Time + keep the result</td><td>measureTimedValue { ... }</td><td>Returns (value, duration)</td></tr>
+          <tr><td>Unambiguous moment</td><td>Clock.System.now(): Instant</td><td>Same point on the timeline everywhere</td></tr>
+          <tr><td>Civil time, no zone</td><td>LocalDateTime(y, m, d, h, min)</td><td>Meaningless without a TimeZone attached</td></tr>
+          <tr><td>Instant → civil time</td><td>instant.toLocalDateTime(zone)</td><td>Requires an explicit TimeZone</td></tr>
+          <tr><td>Civil time → Instant</td><td>localDateTime.toInstant(zone)</td><td>Interprets the civil time as being in that zone</td></tr>
+          <tr><td>Named time zone</td><td>TimeZone.of("America/New_York")</td><td>IANA name, not a fixed UTC offset</td></tr>
+          <tr><td>JVM interop</td><td>kotlinInstant.toJavaInstant()</td><td>Explicit conversion, not implicit interchangeability</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#duration">1: kotlin.time.Duration</a></li>
+      <li><a href="#measure-time">2: measureTime</a></li>
+      <li><a href="#datetime">3: Instant &amp; LocalDateTime</a></li>
+      <li><a href="#timezone">4: TimeZone</a></li>
+      <li><a href="#java-time-interop">5: java.time Interop</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

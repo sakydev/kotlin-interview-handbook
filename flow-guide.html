@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Flow | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Flow</h1>
+  <p>Cold asynchronous streams: builders, operators, context, exception handling, StateFlow vs SharedFlow, and collecting.</p>
+  <div class="hero-pills">
+    <span>Cold streams</span>
+    <span>Builders</span>
+    <span>Operators</span>
+    <span>flowOn</span>
+    <span>StateFlow</span>
+    <span>SharedFlow</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html" class="active"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. COLD FLOWS ─────────────────────────────────────────── -->
+    <section class="section" id="cold-flows">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🌀</div>
+        <h2>Cold Flows</h2>
+        <span class="section-tag">runs per collector · nothing until collect</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><a href="coroutines.html">Coroutines</a> introduces <code class="typ">Flow&lt;T&gt;</code> as an asynchronous stream of values; "cold" is the specific property that the producer block doesn't execute at all until a collector actually calls <code>collect</code>, and it runs again — independently, from the very start — for every new collector. This is fundamentally different from a hot stream like a <code class="typ">Channel</code>, where values are produced regardless of whether anyone's listening and a late collector simply misses whatever already happened.</p>
+
+      <div class="diagram">
+<pre>  val numbers = flow {
+      println("starting")
+      emit(1)
+      emit(2)
+  }
+  // Nothing printed yet — defining a flow does no work
+
+  numbers.collect { println(it) }
+  // starting
+  // 1
+  // 2
+
+  numbers.collect { println(it) }
+  // starting        ← runs again, from scratch, for this NEW collector
+  // 1
+  // 2</pre>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>This mirrors <a href="sequences-guide.html">Sequences</a>' lazy evaluation almost exactly, just extended into the async world: nothing happens until a terminal step (there, a terminal operation; here, <code>collect</code>) pulls values through the pipeline. Being cold is what makes a <code class="typ">Flow</code> safe to define once and reuse — like a request builder — without the producer's side effects firing before you're ready for them.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. FLOW BUILDERS ─────────────────────────────────────── -->
+    <section class="section" id="builders">
+      <div class="section-header">
+        <div class="section-icon icon-green">🏗</div>
+        <h2>Flow Builders</h2>
+        <span class="section-tag">flow { } · flowOf · asFlow</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">The general-purpose builder is <code>flow { }</code>, which lets you call <code>emit</code> from arbitrary <code>suspend</code> code — including loops, conditionals, and calls to other suspending functions. For the common cases of a fixed set of values or converting an existing collection, <code>flowOf</code> and <code>.asFlow()</code> are shorter and communicate intent more directly.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">flow { }, flowOf, and asFlow</span>
+          <span class="card-badge badge-green">Builders</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.flow.*
+<span class="kw">import</span> kotlinx.coroutines.delay
+
+<span class="cmt">// General-purpose: full suspend function body, arbitrary control flow</span>
+<span class="kw">fun</span> <span class="fn">pollStatus</span>(): <span class="typ">Flow</span>&lt;<span class="typ">String</span>&gt; = <span class="fn">flow</span> {
+    <span class="kw">repeat</span>(<span class="num">3</span>) { attempt ->
+        <span class="fn">delay</span>(<span class="num">1000</span>)
+        <span class="fn">emit</span>(<span class="str">"attempt $attempt: checking..."</span>)
+    }
+    <span class="fn">emit</span>(<span class="str">"done"</span>)
+}
+
+<span class="cmt">// flowOf: a fixed, known set of values</span>
+<span class="kw">val</span> fixed: <span class="typ">Flow</span>&lt;<span class="typ">Int</span>&gt; = <span class="fn">flowOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+
+<span class="cmt">// asFlow: converting an existing collection or range into a Flow</span>
+<span class="kw">val</span> fromRange: <span class="typ">Flow</span>&lt;<span class="typ">Int</span>&gt; = (<span class="num">1</span>..<span class="num">5</span>).<span class="fn">asFlow</span>()</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. FLOW OPERATORS ────────────────────────────────────── -->
+    <section class="section" id="operators">
+      <div class="section-header">
+        <div class="section-icon icon-purple">⚙️</div>
+        <h2>Flow Operators</h2>
+        <span class="section-tag">map · filter · take · intermediate, lazy</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Flow's operators are intentionally named after the same <a href="collections-api-guide.html">Collections API</a> operations — <code>map</code>, <code>filter</code>, <code>take</code>, <code>onEach</code> — and behave the same conceptually, except each step can itself suspend, and nothing executes until a terminal operation like <code>collect</code> pulls values through the whole chain, same as an intermediate operation on a <a href="sequences-guide.html">Sequence</a>.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Chaining operators, lazily</span>
+          <span class="card-badge badge-purple">map / filter / onEach</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.flow.*
+<span class="kw">import</span> kotlinx.coroutines.runBlocking
+
+<span class="kw">fun</span> <span class="kw">main</span>() = <span class="fn">runBlocking</span> {
+    (<span class="num">1</span>..<span class="num">10</span>).<span class="fn">asFlow</span>()
+        .<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> }
+        .<span class="fn">map</span> { it * it }
+        .<span class="fn">onEach</span> { <span class="fn">println</span>(<span class="str">"processing: $it"</span>) }  <span class="cmt">// side effect, passes value through unchanged</span>
+        .<span class="fn">take</span>(<span class="num">2</span>)
+        .<span class="fn">collect</span> { <span class="fn">println</span>(<span class="str">"collected: $it"</span>) }
+}
+<span class="cmt">// processing: 4     collected: 4</span>
+<span class="cmt">// processing: 16    collected: 16</span>
+<span class="cmt">// take(2) means the source flow stops emitting after this —</span>
+<span class="cmt">// 6, 8, 10 never get filtered/mapped/onEach'd at all</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. CONTEXT & FLOWON ──────────────────────────────────── -->
+    <section class="section" id="flow-on">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🔀</div>
+        <h2>Context &amp; flowOn</h2>
+        <span class="section-tag">upstream dispatcher · context preservation</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code class="typ">Flow</code> normally runs in whatever coroutine context calls <code>collect</code> — this is called context preservation, and it's a deliberate design choice so a flow's behavior doesn't silently change depending on which dispatcher happens to collect it. <code>flowOn</code> is the explicit, visible way to override the dispatcher for everything <em>upstream</em> of it in the chain, without affecting the collector's own context.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Running the producer on a different dispatcher</span>
+          <span class="card-badge badge-gold">flowOn</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.*
+<span class="kw">import</span> kotlinx.coroutines.flow.*
+
+<span class="kw">fun</span> <span class="fn">readLinesFromDisk</span>(): <span class="typ">Flow</span>&lt;<span class="typ">String</span>&gt; = <span class="fn">flow</span> {
+    <span class="fn">File</span>(<span class="str">"large.txt"</span>).<span class="fn">forEachLine</span> { <span class="fn">emit</span>(it) }  <span class="cmt">// blocking I/O — belongs on Dispatchers.IO</span>
+}
+    .<span class="fn">flowOn</span>(<span class="typ">Dispatchers</span>.<span class="typ">IO</span>)
+    <span class="cmt">// Everything above flowOn() runs on Dispatchers.IO;</span>
+    <span class="cmt">// everything below (the collector) runs on ITS OWN dispatcher,</span>
+    <span class="cmt">// unaffected — flowOn only changes the upstream context</span>
+
+<span class="kw">fun</span> <span class="kw">main</span>() = <span class="fn">runBlocking</span> {
+    readLinesFromDisk()
+        .<span class="fn">filter</span> { it.<span class="fn">isNotBlank</span>() }
+        .<span class="fn">collect</span> { <span class="fn">println</span>(it) }  <span class="cmt">// runs on runBlocking's own dispatcher</span>
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. EXCEPTION HANDLING ────────────────────────────────── -->
+    <section class="section" id="exception-handling">
+      <div class="section-header">
+        <div class="section-icon icon-red">🚨</div>
+        <h2>Exception Handling</h2>
+        <span class="section-tag">catch · try/catch around collect</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">An exception thrown anywhere upstream in a flow chain propagates downstream and cancels the flow — a plain <code>try</code>/<code>catch</code> wrapped around the whole <code>collect</code> call handles it, same as ordinary suspend code. The dedicated <code>catch</code> operator does the same job but as part of the chain itself, which lets you emit a fallback value or transform the failure without breaking out of the surrounding code structure.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">catch operator vs try/catch</span>
+          <span class="card-badge badge-red">catch</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.flow.*
+<span class="kw">import</span> kotlinx.coroutines.runBlocking
+
+<span class="kw">fun</span> <span class="fn">riskyFlow</span>(): <span class="typ">Flow</span>&lt;<span class="typ">Int</span>&gt; = <span class="fn">flow</span> {
+    <span class="fn">emit</span>(<span class="num">1</span>)
+    <span class="fn">emit</span>(<span class="num">2</span>)
+    <span class="kw">throw</span> <span class="typ">RuntimeException</span>(<span class="str">"upstream failure"</span>)
+}
+
+<span class="kw">fun</span> <span class="kw">main</span>() = <span class="fn">runBlocking</span> {
+    <span class="cmt">// catch: part of the chain, can emit a recovery value</span>
+    riskyFlow()
+        .<span class="fn">catch</span> { e -> <span class="fn">emit</span>(-<span class="num">1</span>) }   <span class="cmt">// runs only for exceptions from UPSTREAM of this line</span>
+        .<span class="fn">collect</span> { <span class="fn">println</span>(it) }
+    <span class="cmt">// 1</span>
+    <span class="cmt">// 2</span>
+    <span class="cmt">// -1</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>The <code>catch</code> operator only catches exceptions thrown <em>upstream</em> of where it's placed in the chain — an exception thrown inside the <code>collect</code> block itself is not caught by a <code>catch</code> operator positioned before it. Wrap the collector logic in an ordinary <code>try</code>/<code>catch</code> instead if the failure originates there.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. STATEFLOW VS SHAREDFLOW ───────────────────────────── -->
+    <section class="section" id="stateflow-sharedflow">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📡</div>
+        <h2>StateFlow vs SharedFlow</h2>
+        <span class="section-tag">hot flows · current value · replay</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Both are <strong>hot</strong> flows — unlike a plain <code>flow { }</code>, they exist and can emit independently of whether anyone is collecting, and multiple collectors share the same running stream instead of each triggering their own independent execution. <code class="typ">StateFlow&lt;T&gt;</code> always holds exactly one current value, readable synchronously via <code>.value</code> without collecting at all — it's built for observable state. <code class="typ">SharedFlow&lt;T&gt;</code> is the more general form: no built-in "current value," configurable replay of past emissions to new collectors, and support for values with no natural "current" reading, like one-off events.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">StateFlow: observable current value</span>
+          <span class="card-badge badge-blue">StateFlow</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.flow.MutableStateFlow
+<span class="kw">import</span> kotlinx.coroutines.flow.StateFlow
+
+<span class="kw">class</span> <span class="typ">CounterViewModel</span> {
+    <span class="kw">private</span> <span class="kw">val</span> _count = MutableStateFlow(<span class="num">0</span>)
+    <span class="kw">val</span> count: StateFlow&lt;<span class="typ">Int</span>&gt; = _count.asStateFlow()  <span class="cmt">// read-only view, same split idea as MutableList/List</span>
+
+    <span class="kw">fun</span> <span class="fn">increment</span>() {
+        _count.value++
+    }
+}
+
+<span class="kw">val</span> vm = <span class="typ">CounterViewModel</span>()
+<span class="fn">println</span>(vm.count.value)  <span class="cmt">// 0: read synchronously, no collect needed</span>
+vm.<span class="fn">increment</span>()
+<span class="fn">println</span>(vm.count.value)  <span class="cmt">// 1</span>
+
+<span class="cmt">// A collector also sees every subsequent update, plus the CURRENT</span>
+<span class="cmt">// value immediately upon starting to collect — that's the "state" part</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">SharedFlow: general-purpose event stream</span>
+          <span class="card-badge badge-blue">SharedFlow</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.flow.MutableSharedFlow
+
+<span class="kw">class</span> <span class="typ">EventBus</span> {
+    <span class="cmt">// replay = 0: a new collector only sees FUTURE events,</span>
+    <span class="cmt">// not whatever already happened before it subscribed</span>
+    <span class="kw">private</span> <span class="kw">val</span> _events = MutableSharedFlow&lt;<span class="typ">String</span>&gt;(replay = <span class="num">0</span>)
+    <span class="kw">val</span> events = _events.asSharedFlow()
+
+    <span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">publish</span>(event: <span class="typ">String</span>) {
+        _events.<span class="fn">emit</span>(event)
+    }
+}
+<span class="cmt">// Good fit for one-off signals: "show a toast", "navigate to screen" —</span>
+<span class="cmt">// events that don't make sense to model as a persistent "current value"</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default to <code class="typ">StateFlow</code> whenever there's a meaningful "current value" to expose — UI state, a loaded resource, a toggle. Reach for <code class="typ">SharedFlow</code> for discrete events that don't have a sensible "current" reading, or when you need explicit control over replay behavior for late subscribers.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. COLLECTING ────────────────────────────────────────── -->
+    <section class="section" id="collecting">
+      <div class="section-header">
+        <div class="section-icon icon-green">📥</div>
+        <h2>Collecting</h2>
+        <span class="section-tag">collect · first · toList · launchIn</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>collect</code> is Flow's primary terminal operation — a suspend function that runs until the flow completes, invoking a lambda for every emitted value. A handful of other terminal operations exist for common patterns: <code>first</code> collects just the first value and cancels, <code>toList</code> gathers every value into a <code class="typ">List</code>, and <code>launchIn</code> starts collection inside a given <code class="typ">CoroutineScope</code> without needing an enclosing suspend function.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Terminal operations beyond collect</span>
+          <span class="card-badge badge-green">first / toList / launchIn</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.*
+<span class="kw">import</span> kotlinx.coroutines.flow.*
+
+<span class="kw">fun</span> <span class="kw">main</span>() = <span class="fn">runBlocking</span> {
+    <span class="kw">val</span> numbers = (<span class="num">1</span>..<span class="num">5</span>).<span class="fn">asFlow</span>()
+
+    <span class="cmt">// first: collects one value, then stops — like Sequence's first()</span>
+    <span class="fn">println</span>(numbers.<span class="fn">first</span>())  <span class="cmt">// 1</span>
+
+    <span class="cmt">// toList: gathers everything into a List</span>
+    <span class="fn">println</span>(numbers.<span class="fn">toList</span>())  <span class="cmt">// [1, 2, 3, 4, 5]</span>
+
+    <span class="cmt">// launchIn: starts collection as a new coroutine in the given scope,</span>
+    <span class="cmt">// instead of suspending the current one — fire-and-forget within a scope</span>
+    numbers
+        .<span class="fn">onEach</span> { <span class="fn">println</span>(<span class="str">"launched collect: $it"</span>) }
+        .<span class="fn">launchIn</span>(<span class="kw">this</span>)  <span class="cmt">// `this` refers to the runBlocking CoroutineScope</span>
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>General builder</td><td>flow { emit(x) }</td><td>Full suspend body; runs fresh per collector</td></tr>
+          <tr><td>Fixed values</td><td>flowOf(1, 2, 3)</td><td>Shorthand for a known, static set of values</td></tr>
+          <tr><td>From a collection</td><td>list.asFlow()</td><td>Converts an existing Iterable</td></tr>
+          <tr><td>Transform / filter</td><td>flow.map { } / flow.filter { }</td><td>Lazy: no work until collected</td></tr>
+          <tr><td>Side effect mid-chain</td><td>flow.onEach { }</td><td>Passes the value through unchanged</td></tr>
+          <tr><td>Switch upstream dispatcher</td><td>flow.flowOn(Dispatchers.IO)</td><td>Only affects code above it in the chain</td></tr>
+          <tr><td>Recover from upstream failure</td><td>flow.catch { emit(fallback) }</td><td>Only catches exceptions from upstream, not from collect</td></tr>
+          <tr><td>Observable current value</td><td>MutableStateFlow(initial)</td><td>Hot; .value readable synchronously</td></tr>
+          <tr><td>General event stream</td><td>MutableSharedFlow(replay = n)</td><td>Hot; configurable replay for late subscribers</td></tr>
+          <tr><td>Collect all values</td><td>flow.collect { }</td><td>Suspends until the flow completes</td></tr>
+          <tr><td>First value only</td><td>flow.first()</td><td>Collects one, then cancels</td></tr>
+          <tr><td>Gather into a List</td><td>flow.toList()</td><td>Materializes every emission</td></tr>
+          <tr><td>Collect in a scope</td><td>flow.launchIn(scope)</td><td>Starts a new coroutine instead of suspending the caller</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#cold-flows">1: Cold Flows</a></li>
+      <li><a href="#builders">2: Flow Builders</a></li>
+      <li><a href="#operators">3: Flow Operators</a></li>
+      <li><a href="#flow-on">4: Context &amp; flowOn</a></li>
+      <li><a href="#exception-handling">5: Exception Handling</a></li>
+      <li><a href="#stateflow-sharedflow">6: StateFlow vs SharedFlow</a></li>
+      <li><a href="#collecting">7: Collecting</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

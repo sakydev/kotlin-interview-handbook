@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Serialization | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Serialization</h1>
+  <p>kotlinx.serialization: @Serializable, encode/decode, custom names, default values, polymorphism, and lenient parsing.</p>
+  <div class="hero-pills">
+    <span>@Serializable</span>
+    <span>Json.encodeToString</span>
+    <span>@SerialName</span>
+    <span>Defaults</span>
+    <span>Polymorphism</span>
+    <span>Lenient parsing</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html" class="active"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. @SERIALIZABLE BASICS ───────────────────────────────── -->
+    <section class="section" id="serializable-basics">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔌</div>
+        <h2>@Serializable Basics</h2>
+        <span class="section-tag">compile-time codegen · no reflection</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">kotlinx.serialization is the official library for converting Kotlin objects to and from formats like JSON. Its defining design choice, and the reason it needs its own compiler plugin: annotating a class <code>@Serializable</code> generates a real serializer at compile time, rather than inspecting the class through reflection at runtime the way Jackson or Gson do. That means serialization works on Kotlin/JS and Kotlin/Native (where JVM reflection doesn't exist at all), and mistakes — a field type serialization can't handle — surface as compile errors instead of runtime surprises.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Making a data class serializable</span>
+          <span class="card-badge badge-blue">@Serializable</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.serialization.Serializable
+
+<span class="fn">@Serializable</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">User</span>(
+    <span class="kw">val</span> name: <span class="typ">String</span>,
+    <span class="kw">val</span> age: <span class="typ">Int</span>,
+    <span class="kw">val</span> email: <span class="typ">String</span>?
+)
+<span class="cmt">// The compiler plugin generates User.serializer() at compile time —</span>
+<span class="cmt">// no runtime class inspection needed to encode or decode this type</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Every property in a <code>@Serializable</code> class must itself be a serializable type — a primitive, <code class="typ">String</code>, another <code>@Serializable</code> class, or a standard collection of those. A property whose type kotlinx.serialization doesn't know how to handle is a compile error, not something you discover the first time you try to encode an instance.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. ENCODE & DECODE ───────────────────────────────────── -->
+    <section class="section" id="encode-decode">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔄</div>
+        <h2>Json.encodeToString &amp; decodeFromString</h2>
+        <span class="section-tag">reified generics · one-line conversion</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">The <code class="typ">Json</code> format object is the entry point for converting between a Kotlin object and its JSON text representation. Both functions are generic and reified (see <a href="generics.html">Generics</a>) — the type parameter is inferred from context, so there's no separate <code class="typ">Class&lt;T&gt;</code> token to pass in the way older Java JSON libraries required.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Round-tripping an object through JSON</span>
+          <span class="card-badge badge-green">encodeToString / decodeFromString</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.serialization.Serializable
+<span class="kw">import</span> kotlinx.serialization.encodeToString
+<span class="kw">import</span> kotlinx.serialization.json.Json
+<span class="kw">import</span> kotlinx.serialization.decodeFromString
+
+<span class="fn">@Serializable</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">User</span>(<span class="kw">val</span> name: <span class="typ">String</span>, <span class="kw">val</span> age: <span class="typ">Int</span>)
+
+<span class="kw">val</span> user = <span class="typ">User</span>(<span class="str">"Ada"</span>, <span class="num">36</span>)
+
+<span class="cmt">// encodeToString<T>: T inferred from the argument</span>
+<span class="kw">val</span> json = Json.<span class="fn">encodeToString</span>(user)
+<span class="fn">println</span>(json)  <span class="cmt">// {"name":"Ada","age":36}</span>
+
+<span class="cmt">// decodeFromString<T>: T inferred from the target type</span>
+<span class="kw">val</span> decoded: <span class="typ">User</span> = Json.<span class="fn">decodeFromString</span>(json)
+<span class="fn">println</span>(decoded)  <span class="cmt">// User(name=Ada, age=36)</span>
+
+<span class="cmt">// Lists and nested objects work the same way, no extra ceremony</span>
+<span class="kw">val</span> users = <span class="fn">listOf</span>(<span class="typ">User</span>(<span class="str">"Ada"</span>, <span class="num">36</span>), <span class="typ">User</span>(<span class="str">"Grace"</span>, <span class="num">85</span>))
+<span class="kw">val</span> usersJson = Json.<span class="fn">encodeToString</span>(users)
+<span class="fn">println</span>(usersJson)  <span class="cmt">// [{"name":"Ada","age":36},{"name":"Grace","age":85}]</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. CUSTOM NAMES ───────────────────────────────────────── -->
+    <section class="section" id="custom-names">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🏷</div>
+        <h2>Custom Names: @SerialName</h2>
+        <span class="section-tag">Kotlin name ≠ JSON key</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">External APIs frequently use JSON key names that aren't valid or idiomatic Kotlin identifiers — snake_case fields, reserved words, or names you simply want to present differently in your own model. <code>@SerialName</code> decouples the Kotlin property name from the JSON key it maps to, so your Kotlin code stays idiomatic while still matching the wire format exactly.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Mapping snake_case JSON to camelCase Kotlin</span>
+          <span class="card-badge badge-purple">@SerialName</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.serialization.Serializable
+<span class="kw">import</span> kotlinx.serialization.SerialName
+
+<span class="fn">@Serializable</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">ApiUser</span>(
+    <span class="kw">val</span> name: <span class="typ">String</span>,
+    <span class="fn">@SerialName</span>(<span class="str">"created_at"</span>)
+    <span class="kw">val</span> createdAt: <span class="typ">String</span>,
+    <span class="fn">@SerialName</span>(<span class="str">"is_active"</span>)
+    <span class="kw">val</span> isActive: <span class="typ">Boolean</span>
+)
+
+<span class="kw">val</span> json = <span class="str">"""{"name":"Ada","created_at":"2024-01-01","is_active":true}"""</span>
+<span class="kw">val</span> user = Json.decodeFromString&lt;ApiUser&gt;(json)
+<span class="fn">println</span>(user.createdAt)  <span class="cmt">// "2024-01-01" — read from the "created_at" JSON key</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. DEFAULT VALUES ────────────────────────────────────── -->
+    <section class="section" id="default-values">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🎛</div>
+        <h2>Default Values</h2>
+        <span class="section-tag">missing field → default, not an error</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">An ordinary Kotlin default parameter value (see <a href="basics.html">Basics</a>) also governs decoding: if a JSON payload is missing a field entirely, and the corresponding property has a default, decoding succeeds using that default instead of failing. This is what lets a data model evolve — adding a new optional field — without every previously-stored payload suddenly becoming unparseable.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Tolerating missing fields via defaults</span>
+          <span class="card-badge badge-gold">Defaults</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="fn">@Serializable</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Settings</span>(
+    <span class="kw">val</span> theme: <span class="typ">String</span> = <span class="str">"light"</span>,
+    <span class="kw">val</span> notificationsEnabled: <span class="typ">Boolean</span> = <span class="kw">true</span>
+)
+
+<span class="cmt">// Old payload, predating the notificationsEnabled field entirely</span>
+<span class="kw">val</span> oldJson = <span class="str">"""{"theme":"dark"}"""</span>
+<span class="kw">val</span> settings = Json.decodeFromString&lt;Settings&gt;(oldJson)
+<span class="fn">println</span>(settings)  <span class="cmt">// Settings(theme=dark, notificationsEnabled=true) — default filled in</span>
+
+<span class="cmt">// Without a default, a missing field is a decoding ERROR, not null:</span>
+<span class="cmt">// SerializationException: Field 'notificationsEnabled' is required</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Give every field you expect might be added later a sensible default from day one. It costs nothing when the field is always present, and it's what makes a schema change backward-compatible with data serialized before the change shipped.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. POLYMORPHISM ──────────────────────────────────────── -->
+    <section class="section" id="polymorphism">
+      <div class="section-header">
+        <div class="section-icon icon-red">🎭</div>
+        <h2>Polymorphism</h2>
+        <span class="section-tag">sealed class · type discriminator · "type" key</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Serializing a value through an interface or abstract base type needs a way to record, in the JSON itself, which concrete subtype it actually was — otherwise decoding wouldn't know what to reconstruct. kotlinx.serialization handles this automatically for a <code>sealed</code> hierarchy (see <a href="classes-objects.html">Classes &amp; Objects</a>): because every subtype is known at compile time, the plugin can generate a type discriminator without any extra annotations.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A sealed hierarchy, serialized with a type tag</span>
+          <span class="card-badge badge-red">sealed + polymorphic</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="fn">@Serializable</span>
+<span class="kw">sealed</span> <span class="kw">class</span> <span class="typ">Shape</span>
+
+<span class="fn">@Serializable</span>
+<span class="fn">@SerialName</span>(<span class="str">"circle"</span>)
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Circle</span>(<span class="kw">val</span> radius: <span class="typ">Double</span>) : <span class="typ">Shape</span>()
+
+<span class="fn">@Serializable</span>
+<span class="fn">@SerialName</span>(<span class="str">"rectangle"</span>)
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Rectangle</span>(<span class="kw">val</span> width: <span class="typ">Double</span>, <span class="kw">val</span> height: <span class="typ">Double</span>) : <span class="typ">Shape</span>()
+
+<span class="kw">val</span> shapes: <span class="typ">List</span>&lt;<span class="typ">Shape</span>&gt; = <span class="fn">listOf</span>(<span class="typ">Circle</span>(<span class="num">2.0</span>), <span class="typ">Rectangle</span>(<span class="num">3.0</span>, <span class="num">4.0</span>))
+<span class="kw">val</span> json = Json.<span class="fn">encodeToString</span>(shapes)
+<span class="fn">println</span>(json)
+<span class="cmt">// [{"type":"circle","radius":2.0},{"type":"rectangle","width":3.0,"height":4.0}]</span>
+
+<span class="cmt">// Decoding reconstructs the correct concrete subtype using that "type" key</span>
+<span class="kw">val</span> decoded: <span class="typ">List</span>&lt;<span class="typ">Shape</span>&gt; = Json.decodeFromString(json)
+<span class="fn">println</span>(decoded.<span class="fn">first</span>() <span class="kw">is</span> <span class="typ">Circle</span>)  <span class="cmt">// true</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>The <code>"type"</code> discriminator key defaults to the class's fully-qualified name unless <code>@SerialName</code> overrides it — always set it explicitly on each subtype in a serialized hierarchy, since the fully-qualified default breaks the moment you rename or move the class.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. LENIENT PARSING ───────────────────────────────────── -->
+    <section class="section" id="lenient-parsing">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🕊</div>
+        <h2>Lenient Parsing</h2>
+        <span class="section-tag">Json { } configuration · unknown keys</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">The default <code class="typ">Json</code> instance is strict: unrecognized keys throw, malformed literals throw. A custom-configured <code class="typ">Json</code> instance can relax specific rules — ignoring keys your model doesn't declare, coercing malformed values instead of failing, or accepting non-standard JSON — which matters when parsing real-world APIs that don't always produce textbook-clean JSON.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A configured Json instance</span>
+          <span class="card-badge badge-blue">Json { }</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.serialization.json.Json
+
+<span class="kw">val</span> lenientJson = Json {
+    ignoreUnknownKeys = <span class="kw">true</span>   <span class="cmt">// don't fail on JSON fields your model doesn't declare</span>
+    isLenient = <span class="kw">true</span>           <span class="cmt">// accept minor deviations from strict JSON syntax</span>
+    coerceInputValues = <span class="kw">true</span>   <span class="cmt">// use a property's default instead of failing on a null/wrong-type value</span>
+}
+
+<span class="fn">@Serializable</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">User</span>(<span class="kw">val</span> name: <span class="typ">String</span>)
+
+<span class="cmt">// "age" isn't declared on User at all — default Json would throw,</span>
+<span class="cmt">// lenientJson silently ignores it instead</span>
+<span class="kw">val</span> json = <span class="str">"""{"name":"Ada","age":36,"extra":"field"}"""</span>
+<span class="kw">val</span> user = lenientJson.decodeFromString&lt;User&gt;(json)
+<span class="fn">println</span>(user)  <span class="cmt">// User(name=Ada)</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Reach for a lenient configuration deliberately, for a specific external API known to send extra or occasionally malformed fields — not as a blanket default across a codebase. The strict defaults exist because silently ignoring unexpected data is exactly how a real schema mismatch (a renamed field, a breaking API change) goes unnoticed until it causes a harder-to-diagnose bug somewhere downstream.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Mark a class serializable</td><td>@Serializable data class X(...)</td><td>Generates a serializer at compile time</td></tr>
+          <tr><td>Object → JSON</td><td>Json.encodeToString(obj)</td><td>Type inferred via reified generics</td></tr>
+          <tr><td>JSON → object</td><td>Json.decodeFromString&lt;T&gt;(json)</td><td>No Class&lt;T&gt; token needed</td></tr>
+          <tr><td>Custom JSON key</td><td>@SerialName("json_key")</td><td>Decouples Kotlin property name from wire format</td></tr>
+          <tr><td>Tolerate a missing field</td><td>val x: T = default</td><td>Ordinary Kotlin default; used when the JSON omits the field</td></tr>
+          <tr><td>Polymorphic hierarchy</td><td>@Serializable sealed class Base</td><td>Automatic type discriminator for known subtypes</td></tr>
+          <tr><td>Subtype's discriminator value</td><td>@SerialName("circle") on the subtype</td><td>Always set explicitly; default is the FQN</td></tr>
+          <tr><td>Ignore unrecognized fields</td><td>Json { ignoreUnknownKeys = true }</td><td>Default Json throws on unknown keys</td></tr>
+          <tr><td>Accept minor syntax deviations</td><td>Json { isLenient = true }</td><td>For real-world, not-quite-strict JSON</td></tr>
+          <tr><td>Fall back to defaults on bad values</td><td>Json { coerceInputValues = true }</td><td>Use sparingly; can mask real schema issues</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#serializable-basics">1: @Serializable Basics</a></li>
+      <li><a href="#encode-decode">2: encode/decode</a></li>
+      <li><a href="#custom-names">3: @SerialName</a></li>
+      <li><a href="#default-values">4: Default Values</a></li>
+      <li><a href="#polymorphism">5: Polymorphism</a></li>
+      <li><a href="#lenient-parsing">6: Lenient Parsing</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
