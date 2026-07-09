@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Testing | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Testing</h1>
+  <p>kotlin.test and JUnit 5, parameterized tests, MockK, and testing coroutines with runTest.</p>
+  <div class="hero-pills">
+    <span>JUnit 5</span>
+    <span>Assertions</span>
+    <span>@ParameterizedTest</span>
+    <span>MockK</span>
+    <span>runTest</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html" class="active"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. KOTLIN.TEST & JUNIT 5 ──────────────────────────────── -->
+    <section class="section" id="junit5">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🧪</div>
+        <h2>kotlin.test &amp; JUnit 5</h2>
+        <span class="section-tag">@Test · @BeforeEach · @DisplayName</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Most Kotlin/JVM projects run on JUnit 5 directly, using its annotations as-is — <code>@Test</code>, <code>@BeforeEach</code>, <code>@Nested</code> all work unchanged from Kotlin. <code>kotlin.test</code> is a thin multiplatform layer on top (useful if the same test code needs to run on Kotlin/JS or Kotlin/Native too), but for a pure JVM project, writing directly against JUnit 5 is the more common and more directly documented path.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A JUnit 5 test class</span>
+          <span class="card-badge badge-blue">@Test</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> org.junit.jupiter.api.Test
+<span class="kw">import</span> org.junit.jupiter.api.BeforeEach
+<span class="kw">import</span> org.junit.jupiter.api.Assertions.assertEquals
+
+<span class="kw">class</span> <span class="typ">CalculatorTest</span> {
+
+    <span class="kw">private</span> <span class="kw">lateinit</span> <span class="kw">var</span> calculator: <span class="typ">Calculator</span>
+
+    <span class="cmt">// Runs before every test method in this class</span>
+    <span class="fn">@BeforeEach</span>
+    <span class="kw">fun</span> <span class="fn">setUp</span>() {
+        calculator = <span class="typ">Calculator</span>()
+    }
+
+    <span class="fn">@Test</span>
+    <span class="kw">fun</span> <span class="fn">`adding two positive numbers returns their sum`</span>() {
+        <span class="kw">val</span> result = calculator.<span class="fn">add</span>(<span class="num">2</span>, <span class="num">3</span>)
+        <span class="fn">assertEquals</span>(<span class="num">5</span>, result)
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Kotlin allows a function name written as an arbitrary string in backticks — <code>fun \`adding two positive numbers returns their sum\`()</code> — which is legal specifically because a test method is never called directly from other code, only invoked by the test runner via reflection. It's the idiomatic way to write a readable test name without a separate <code>@DisplayName</code> annotation, and most test reports display the backtick name verbatim.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. ASSERTION STYLES ──────────────────────────────────── -->
+    <section class="section" id="assertions">
+      <div class="section-header">
+        <div class="section-icon icon-green">✅</div>
+        <h2>Assertion Styles</h2>
+        <span class="section-tag">assertEquals · assertTrue · Kotest-style</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">JUnit 5's own <code class="typ">Assertions</code> class covers the basics — equality, truthiness, exceptions, nullability — and is often all a project needs. Some teams layer a fluent assertion library like AssertJ or Kotest's matchers on top for more expressive failure messages and chainable checks; either is a project-level choice, not something the language mandates.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">JUnit 5 built-in assertions</span>
+          <span class="card-badge badge-green">Assertions</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> org.junit.jupiter.api.Assertions.*
+<span class="kw">import</span> org.junit.jupiter.api.Test
+
+<span class="kw">class</span> <span class="typ">UserValidatorTest</span> {
+
+    <span class="fn">@Test</span>
+    <span class="kw">fun</span> <span class="fn">`rejects a blank name`</span>() {
+        <span class="kw">val</span> result = <span class="typ">UserValidator</span>.<span class="fn">validate</span>(name = <span class="str">""</span>)
+        <span class="fn">assertFalse</span>(result.isValid)
+        <span class="fn">assertEquals</span>(<span class="str">"name cannot be blank"</span>, result.error)
+    }
+
+    <span class="fn">@Test</span>
+    <span class="kw">fun</span> <span class="fn">`throws for a negative age`</span>() {
+        <span class="cmt">// assertThrows returns the thrown exception for further assertions</span>
+        <span class="kw">val</span> exception = <span class="fn">assertThrows</span>&lt;<span class="typ">IllegalArgumentException</span>&gt; {
+            <span class="typ">UserValidator</span>.<span class="fn">requireValidAge</span>(-<span class="num">1</span>)
+        }
+        <span class="fn">assertEquals</span>(<span class="str">"age must be non-negative"</span>, exception.message)
+    }
+
+    <span class="fn">@Test</span>
+    <span class="kw">fun</span> <span class="fn">`nullable result is null for an unknown id`</span>() {
+        <span class="fn">assertNull</span>(<span class="typ">UserRepository</span>.<span class="fn">findById</span>(-<span class="num">1</span>))
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Kotlin's reified generics (see <a href="generics.html">Generics</a>) let JUnit 5's Kotlin extensions expose <code>assertThrows&lt;ExceptionType&gt; { block }</code> as an inline function — a much cleaner call than Java's equivalent, which needs the exception's <code>Class</code> object passed explicitly as an argument.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. PARAMETERIZED TESTS ───────────────────────────────── -->
+    <section class="section" id="parameterized">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🔁</div>
+        <h2>Parameterized Tests</h2>
+        <span class="section-tag">@ParameterizedTest · @ValueSource · @CsvSource</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A parameterized test runs the same test body once per input, reported as separate test results — the direct equivalent of Go's table-driven test pattern, but with the table declared as an annotation rather than a slice literal you range over by hand.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">@ValueSource and @CsvSource</span>
+          <span class="card-badge badge-purple">@ParameterizedTest</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> org.junit.jupiter.params.ParameterizedTest
+<span class="kw">import</span> org.junit.jupiter.params.provider.ValueSource
+<span class="kw">import</span> org.junit.jupiter.params.provider.CsvSource
+
+<span class="kw">class</span> <span class="typ">StringUtilsTest</span> {
+
+    <span class="fn">@ParameterizedTest</span>
+    <span class="fn">@ValueSource(strings = ["racecar", "level", "noon"])</span>
+    <span class="kw">fun</span> <span class="fn">`recognizes palindromes`</span>(input: <span class="typ">String</span>) {
+        <span class="fn">assertTrue</span>(input.<span class="fn">isPalindrome</span>())
+    }
+
+    <span class="cmt">// CsvSource: multiple named arguments per test case</span>
+    <span class="fn">@ParameterizedTest</span>
+    <span class="fn">@CsvSource(
+        "2, 3, 5",
+        "10, -5, 5",
+        "0, 0, 0"
+    )</span>
+    <span class="kw">fun</span> <span class="fn">`adds two numbers correctly`</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>, expected: <span class="typ">Int</span>) {
+        <span class="fn">assertEquals</span>(expected, a + b)
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for <code>@MethodSource</code> instead of <code>@CsvSource</code> once your test cases need real objects rather than primitives and strings — it points at a companion object function returning a <code class="typ">Stream</code> of arguments, which composes naturally with <code>data class</code> test-case objects for readability.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. MOCKK BASICS ──────────────────────────────────────── -->
+    <section class="section" id="mockk">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🎭</div>
+        <h2>MockK Basics</h2>
+        <span class="section-tag">mockk() · every · verify · relaxed</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Mockito is Java's default, but it struggles with Kotlin's language features — final classes by default, extension functions, top-level functions — because it works by generating subclasses at runtime. MockK was built for Kotlin specifically and handles all of that natively, which is why it's the more common choice in Kotlin-first codebases.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Stubbing and verifying with MockK</span>
+          <span class="card-badge badge-gold">every / verify</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> io.mockk.*
+<span class="kw">import</span> org.junit.jupiter.api.Test
+
+<span class="kw">interface</span> <span class="typ">UserRepository</span> {
+    <span class="kw">fun</span> <span class="fn">findById</span>(id: <span class="typ">Int</span>): <span class="typ">User</span>?
+}
+
+<span class="kw">class</span> <span class="typ">UserServiceTest</span> {
+
+    <span class="fn">@Test</span>
+    <span class="kw">fun</span> <span class="fn">`returns the user's display name`</span>() {
+        <span class="cmt">// mockk() creates a fake implementation of the interface</span>
+        <span class="kw">val</span> repository = <span class="fn">mockk</span>&lt;<span class="typ">UserRepository</span>&gt;()
+
+        <span class="cmt">// every { } stubs what the mock returns for a given call</span>
+        <span class="fn">every</span> { repository.<span class="fn">findById</span>(<span class="num">1</span>) } returns <span class="typ">User</span>(<span class="num">1</span>, <span class="str">"Ada"</span>)
+
+        <span class="kw">val</span> service = <span class="typ">UserService</span>(repository)
+        <span class="kw">val</span> name = service.<span class="fn">displayNameFor</span>(<span class="num">1</span>)
+
+        <span class="fn">assertEquals</span>(<span class="str">"Ada"</span>, name)
+
+        <span class="cmt">// verify { } asserts a specific call actually happened</span>
+        <span class="fn">verify</span>(exactly = <span class="num">1</span>) { repository.<span class="fn">findById</span>(<span class="num">1</span>) }
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>A strict mock (the default) throws if you call a method with no stubbed behavior — good for catching unintended interactions. <code>mockk&lt;UserRepository&gt;(relaxed = true)</code> instead returns sensible defaults (empty collections, zero, null) for every unstubbed call, which trades that safety for less setup boilerplate when a test only cares about one or two specific interactions.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. RUNTEST FOR COROUTINES ────────────────────────────── -->
+    <section class="section" id="run-test">
+      <div class="section-header">
+        <div class="section-icon icon-red">⏱</div>
+        <h2>runTest for Coroutines</h2>
+        <span class="section-tag">runTest · virtual time · TestScope</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A regular test function can't call a <code>suspend</code> function directly — it isn't itself <code>suspend</code>, and there's no coroutine scope to launch into. <code>runTest</code>, from kotlinx-coroutines-test, solves both: it provides a <code class="typ">TestScope</code> and, more importantly, runs on virtual time, so a test that calls <code>delay(10_000)</code> completes instantly instead of actually waiting ten seconds.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Testing a suspend function</span>
+          <span class="card-badge badge-red">runTest</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlinx.coroutines.test.runTest
+<span class="kw">import</span> kotlinx.coroutines.delay
+<span class="kw">import</span> org.junit.jupiter.api.Test
+
+<span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">fetchGreeting</span>(): <span class="typ">String</span> {
+    <span class="fn">delay</span>(<span class="num">5000</span>)  <span class="cmt">// simulates a slow network call</span>
+    <span class="kw">return</span> <span class="str">"Hello"</span>
+}
+
+<span class="kw">class</span> <span class="typ">GreetingTest</span> {
+
+    <span class="fn">@Test</span>
+    <span class="kw">fun</span> <span class="fn">`fetches the greeting without actually waiting 5 seconds`</span>() = <span class="fn">runTest</span> {
+        <span class="kw">val</span> result = <span class="fn">fetchGreeting</span>()   <span class="cmt">// delay() is skipped forward on virtual time</span>
+        <span class="fn">assertEquals</span>(<span class="str">"Hello"</span>, result)
+    }
+    <span class="cmt">// This test runs in milliseconds of real wall-clock time,</span>
+    <span class="cmt">// despite the 5-second delay() inside fetchGreeting()</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Use <code>runTest</code>'s <code class="typ">TestScope</code> to launch background coroutines under test and control their virtual-time progression explicitly with functions like <code>advanceTimeBy</code> or <code>advanceUntilIdle</code> when a test needs to assert on state at a specific point mid-execution, not just at completion.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Test method</td><td>@Test fun \`readable name\`()</td><td>Backtick names avoid needing @DisplayName</td></tr>
+          <tr><td>Setup hook</td><td>@BeforeEach fun setUp()</td><td>Runs before every test in the class</td></tr>
+          <tr><td>Equality assertion</td><td>assertEquals(expected, actual)</td><td>Expected first, actual second</td></tr>
+          <tr><td>Exception assertion</td><td>assertThrows&lt;E&gt; { block }</td><td>Reified generic; returns the thrown exception</td></tr>
+          <tr><td>Simple parameterization</td><td>@ParameterizedTest @ValueSource(...)</td><td>One primitive/string argument per case</td></tr>
+          <tr><td>Multi-arg parameterization</td><td>@CsvSource("a, b, c")</td><td>Comma-separated arguments per test case</td></tr>
+          <tr><td>Create a mock</td><td>mockk&lt;Interface&gt;()</td><td>Strict by default; throws on unstubbed calls</td></tr>
+          <tr><td>Lenient mock</td><td>mockk&lt;Interface&gt;(relaxed = true)</td><td>Returns defaults for unstubbed calls</td></tr>
+          <tr><td>Stub a call</td><td>every { mock.f() } returns x</td><td>Defines the mock's behavior</td></tr>
+          <tr><td>Verify a call happened</td><td>verify(exactly = 1) { mock.f() }</td><td>Asserts on interaction, not just return value</td></tr>
+          <tr><td>Test a suspend function</td><td>@Test fun f() = runTest { }</td><td>Provides a TestScope; runs on virtual time</td></tr>
+          <tr><td>Advance virtual time</td><td>advanceTimeBy / advanceUntilIdle</td><td>Controls delay() progression inside runTest</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#junit5">1: kotlin.test &amp; JUnit 5</a></li>
+      <li><a href="#assertions">2: Assertion Styles</a></li>
+      <li><a href="#parameterized">3: Parameterized Tests</a></li>
+      <li><a href="#mockk">4: MockK Basics</a></li>
+      <li><a href="#run-test">5: runTest for Coroutines</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

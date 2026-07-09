@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Performance | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Performance</h1>
+  <p>Inline functions, value classes, boxing on the JVM, sequences vs collections, tailrec, and allocation-aware patterns.</p>
+  <div class="hero-pills">
+    <span>inline</span>
+    <span>value class</span>
+    <span>Boxing</span>
+    <span>Sequences</span>
+    <span>tailrec</span>
+    <span>const</span>
+    <span>Allocation</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html" class="active"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. INLINE FUNCTIONS, REVISITED ───────────────────────── -->
+    <section class="section" id="inline-revisited">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔥</div>
+        <h2>Inline Functions, Revisited</h2>
+        <span class="section-tag">no lambda allocation · no virtual call</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><a href="functions-lambdas.html">Functions &amp; Lambdas</a> introduces <code>inline</code> for the non-local return it unlocks; the performance angle is the other half of the story. Every lambda is normally compiled to an object implementing a function interface, and invoking it is a virtual call through that object. Inlining erases both costs by pasting the function and lambda bodies directly at the call site — at the cost of larger compiled bytecode, since the body is now duplicated everywhere it's called.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">What actually changes at the bytecode level</span>
+          <span class="card-badge badge-blue">inline</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">inline</span> <span class="kw">fun</span> &lt;<span class="typ">T</span>&gt; <span class="fn">measureAndLog</span>(label: <span class="typ">String</span>, block: () -> <span class="typ">T</span>): <span class="typ">T</span> {
+    <span class="kw">val</span> start = <span class="typ">System</span>.<span class="fn">nanoTime</span>()
+    <span class="kw">val</span> result = <span class="fn">block</span>()
+    <span class="fn">println</span>(<span class="str">"$label took ${System.nanoTime() - start}ns"</span>)
+    <span class="kw">return</span> result
+}
+
+<span class="kw">val</span> total = <span class="fn">measureAndLog</span>(<span class="str">"sum"</span>) {
+    (<span class="num">1</span>..<span class="num">1_000_000</span>).<span class="fn">sum</span>()
+}
+
+<span class="cmt">// Roughly equivalent to what the compiler generates in place of the call —</span>
+<span class="cmt">// no Function0 object for the lambda, no invoke() call through it:</span>
+<span class="cmt">// val start = System.nanoTime()</span>
+<span class="cmt">// val result = (1..1_000_000).sum()</span>
+<span class="cmt">// println("sum took ${System.nanoTime() - start}ns")</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Inlining pays off for small, hot, frequently-called functions — exactly the profile of the standard library's own scope functions and collection operators. It's a net loss for large function bodies called from many places: you trade one shared copy of the bytecode for many duplicated ones, growing the compiled artifact with no runtime benefit proportional to the cost.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. VALUE CLASSES ─────────────────────────────────────── -->
+    <section class="section" id="value-classes">
+      <div class="section-header">
+        <div class="section-icon icon-green">💎</div>
+        <h2>Value Classes</h2>
+        <span class="section-tag">@JvmInline value class · zero-cost wrapper</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Wrapping a primitive in a class for type safety — a <code class="typ">UserId</code> instead of a bare <code class="typ">Int</code>, so you can't accidentally pass a product ID where a user ID belongs — normally costs an allocation per wrapper instance. A <code>value class</code> (annotated <code>@JvmInline</code>) removes that cost in most cases: the compiler tries to represent it as the underlying type directly at compile time, unwrapping it away entirely, while still giving you full type-checking against mixing it up with the raw type or another value class.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Type safety without the wrapper allocation</span>
+          <span class="card-badge badge-green">@JvmInline value class</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="fn">@JvmInline</span>
+<span class="kw">value</span> <span class="kw">class</span> <span class="typ">UserId</span>(<span class="kw">val</span> value: <span class="typ">Int</span>)
+
+<span class="fn">@JvmInline</span>
+<span class="kw">value</span> <span class="kw">class</span> <span class="typ">ProductId</span>(<span class="kw">val</span> value: <span class="typ">Int</span>)
+
+<span class="kw">fun</span> <span class="fn">fetchUser</span>(id: <span class="typ">UserId</span>): <span class="typ">User</span> = <span class="cmt">/* ... */</span> <span class="typ">User</span>(id.value, <span class="str">"Ada"</span>)
+
+<span class="kw">val</span> userId = <span class="typ">UserId</span>(<span class="num">42</span>)
+<span class="fn">fetchUser</span>(userId)               <span class="cmt">// fine</span>
+<span class="cmt">// fetchUser(ProductId(42))   // ERROR: not a UserId, even though both wrap Int</span>
+<span class="cmt">// fetchUser(42)              // ERROR: raw Int isn't a UserId either</span>
+
+<span class="cmt">// At runtime, in most contexts, this compiles down to passing a</span>
+<span class="cmt">// plain Int — no UserId object is actually allocated on the heap</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>The "zero-cost" behavior has real exceptions: a value class used as a generic type argument, stored in a nullable field, or referenced through an interface it implements typically does get boxed, because the JVM's generics and interfaces require a real object reference at those points. Value classes are a strong default for wrapper types used directly, not an unconditional guarantee for every usage shape.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. BOXING ON THE JVM ─────────────────────────────────── -->
+    <section class="section" id="boxing">
+      <div class="section-header">
+        <div class="section-icon icon-purple">📦</div>
+        <h2>Boxing on the JVM</h2>
+        <span class="section-tag">Int vs Integer · generics force boxing</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin's <code class="typ">Int</code> compiles to the JVM's primitive <code>int</code> wherever possible — no object, no heap allocation, just a raw 32-bit value on the stack or in a field. The JVM's generics, though, are implemented entirely with object references (a holdover from before generics existed at all), so any time an <code class="typ">Int</code> needs to fill a generic type parameter — going into a <code class="typ">List&lt;Int&gt;</code>, for instance — it gets boxed into a heap-allocated <code class="typ">Integer</code> wrapper object first.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Where boxing happens</span>
+          <span class="card-badge badge-purple">Boxing</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Unboxed: compiles to a primitive int, no allocation</span>
+<span class="kw">val</span> x: <span class="typ">Int</span> = <span class="num">42</span>
+<span class="kw">fun</span> <span class="fn">square</span>(n: <span class="typ">Int</span>): <span class="typ">Int</span> = n * n
+
+<span class="cmt">// Boxed: List<Int> is generic, so every element is an Integer object</span>
+<span class="kw">val</span> boxed: <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt; = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+
+<span class="cmt">// Unboxed: IntArray is backed by a real int[], not Integer[]</span>
+<span class="kw">val</span> unboxed: <span class="typ">IntArray</span> = <span class="fn">intArrayOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+
+<span class="cmt">// A nullable Int must be boxed too: there's no "null" representation</span>
+<span class="cmt">// for a primitive int, so Int? always uses the boxed Integer</span>
+<span class="kw">val</span> nullable: <span class="typ">Int</span>? = <span class="num">5</span>  <span class="cmt">// boxed, even though 5 itself isn't null</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>For large collections of numeric primitives on a genuine hot path — game loops, numeric processing, tight simulation code — prefer <code class="typ">IntArray</code>/<code class="typ">DoubleArray</code>/<code class="typ">LongArray</code> over <code class="typ">List&lt;Int&gt;</code>/<code class="typ">List&lt;Double&gt;</code>/<code class="typ">List&lt;Long&gt;</code> to avoid boxing every element individually. For everyday application code processing a few thousand elements, the difference is rarely worth the API ergonomics you give up — measure before reaching for this.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. SEQUENCES VS COLLECTIONS ──────────────────────────── -->
+    <section class="section" id="sequences-vs-collections">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🌊</div>
+        <h2>Sequences vs Collections for Large Chains</h2>
+        <span class="section-tag">lazy · one pass · intermediate allocation</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Chaining operators on a <code class="typ">List</code> — <code>.filter { }.map { }.take(3)</code> — evaluates eagerly: each operator fully processes the list and allocates a brand-new intermediate list before the next operator even starts. A <code class="typ">Sequence</code> evaluates lazily, element by element, through the whole chain at once, with no intermediate list materialized between steps. The full mechanics live in the <a href="sequences-guide.html">Sequences</a> guide; the performance summary is short.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Eager vs lazy over a long chain</span>
+          <span class="card-badge badge-gold">asSequence()</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = (<span class="num">1</span>..<span class="num">1_000_000</span>).<span class="fn">toList</span>()
+
+<span class="cmt">// Eager: filter() allocates a full intermediate list of ~500,000 items,</span>
+<span class="cmt">// THEN map() processes and allocates another list from all of those,</span>
+<span class="cmt">// even though only 3 results were ever needed</span>
+<span class="kw">val</span> eager = numbers
+    .<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> }
+    .<span class="fn">map</span> { it * it }
+    .<span class="fn">take</span>(<span class="num">3</span>)
+
+<span class="cmt">// Lazy: each number flows through filter → map → take as a pipeline,</span>
+<span class="cmt">// one element at a time, stopping as soon as 3 results are collected —</span>
+<span class="cmt">// no full intermediate list ever materializes</span>
+<span class="kw">val</span> lazy = numbers.<span class="fn">asSequence</span>()
+    .<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> }
+    .<span class="fn">map</span> { it * it }
+    .<span class="fn">take</span>(<span class="num">3</span>)
+    .<span class="fn">toList</span>()  <span class="cmt">// terminal operation: only now does evaluation actually run</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Sequences aren't a free upgrade. For a short chain over a small collection, the per-element overhead of the sequence's lazy iterator machinery often loses to the JIT-friendly, straightforward eager list operations. Reach for <code>asSequence()</code> specifically for long operator chains over large collections, or where an early terminal operation like <code>first()</code>/<code>take(n)</code> means most of the data never needs processing at all.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. TAILREC ────────────────────────────────────────────── -->
+    <section class="section" id="tailrec">
+      <div class="section-header">
+        <div class="section-icon icon-red">🔁</div>
+        <h2>tailrec</h2>
+        <span class="section-tag">tail-call optimization · no stack growth</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">The JVM doesn't optimize tail calls on its own, so a naively recursive function risks a <code class="typ">StackOverflowError</code> on deep recursion — a real concern in Kotlin the way it usually isn't in languages with runtime tail-call support. Marking a function <code>tailrec</code> asks the compiler to rewrite a qualifying recursive call into a loop at compile time, eliminating the stack growth entirely. The qualification is strict: the recursive call must be the very last operation, with nothing left to do with its result afterward.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Compiled to a loop, not real recursion</span>
+          <span class="card-badge badge-red">tailrec</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// The recursive call is the LAST thing that happens — nothing</span>
+<span class="cmt">// wraps around it afterward, which is what makes it tail-callable</span>
+<span class="kw">tailrec</span> <span class="kw">fun</span> <span class="fn">factorial</span>(n: <span class="typ">Long</span>, accumulator: <span class="typ">Long</span> = <span class="num">1</span>): <span class="typ">Long</span> =
+    <span class="kw">if</span> (n &lt;= <span class="num">1</span>) accumulator <span class="kw">else</span> <span class="fn">factorial</span>(n - <span class="num">1</span>, n * accumulator)
+
+<span class="fn">println</span>(<span class="fn">factorial</span>(<span class="num">100_000</span>))  <span class="cmt">// no StackOverflowError: compiled to an ordinary loop</span>
+
+<span class="cmt">// NOT tail-recursive: the multiplication happens AFTER the recursive</span>
+<span class="cmt">// call returns, so there's still work pending on the stack frame</span>
+<span class="kw">fun</span> <span class="fn">factorialNaive</span>(n: <span class="typ">Long</span>): <span class="typ">Long</span> =
+    <span class="kw">if</span> (n &lt;= <span class="num">1</span>) <span class="num">1</span> <span class="kw">else</span> n * <span class="fn">factorialNaive</span>(n - <span class="num">1</span>)  <span class="cmt">// tailrec here would be a no-op warning</span>
+<span class="cmt">// factorialNaive(100_000) risks StackOverflowError: real recursion, real stack growth</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>If you mark a function <code>tailrec</code> and its recursive call isn't actually in tail position, the compiler emits a warning and quietly falls back to ordinary (non-optimized) recursion rather than failing to compile — always check for that warning after adding the modifier, since a silently-ignored one means you didn't get the optimization you thought you did.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. CONST ──────────────────────────────────────────────── -->
+    <section class="section" id="const">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔒</div>
+        <h2>const</h2>
+        <span class="section-tag">compile-time constant · inlined at use site</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>const val</code> declares a value the compiler can fully resolve at compile time — a string or primitive literal, or a simple expression of them — and inlines directly into every call site that reads it, the same way a C preprocessor macro or a Go untyped constant would. This is a stronger guarantee than a regular top-level <code>val</code>, which is still just a runtime-initialized property read through a getter, even when its value never actually changes.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">const val vs val</span>
+          <span class="card-badge badge-blue">const</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// const val: resolved at compile time, inlined at every usage —</span>
+<span class="cmt">// must be a top-level or companion object property, and can only</span>
+<span class="cmt">// hold a String or primitive type, never a computed/runtime value</span>
+<span class="kw">const</span> <span class="kw">val</span> MAX_RETRIES = <span class="num">3</span>
+<span class="kw">const</span> <span class="kw">val</span> API_VERSION = <span class="str">"v2"</span>
+
+<span class="cmt">// Regular val: still a runtime property with a getter behind it,</span>
+<span class="cmt">// even though this particular value also never changes</span>
+<span class="kw">val</span> maxRetriesComputed = <span class="num">1</span> + <span class="num">2</span>  <span class="cmt">// legal as val; NOT legal as const (needs a true compile-time constant)</span>
+
+<span class="cmt">// val requiring runtime evaluation can never be const, at all</span>
+<span class="kw">val</span> startupTime = <span class="typ">System</span>.<span class="fn">currentTimeMillis</span>()</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Because a <code>const val</code>'s value is inlined at compile time into every module that reads it, changing its value in a library and shipping a new version doesn't take effect for consumers until they recompile against the new version — a stale, previously-compiled call site still has the old value baked in. This is the same binary-compatibility caveat Java's <code>static final</code> constants have always carried.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. ALLOCATION-AWARE PATTERNS ─────────────────────────── -->
+    <section class="section" id="allocation-aware">
+      <div class="section-header">
+        <div class="section-icon icon-green">♻️</div>
+        <h2>Allocation-Aware Patterns</h2>
+        <span class="section-tag">avoid needless intermediates · reuse</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Most everyday Kotlin code shouldn't be written around allocation concerns at all — clarity wins by default, and the JVM's generational garbage collector is very good at cheaply reclaiming short-lived objects. The patterns below are worth knowing specifically for code that profiling has already flagged as allocation-heavy, not as a blanket style to apply everywhere.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">buildString over repeated string concatenation</span>
+          <span class="card-badge badge-green">buildString</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Each += on a String allocates a brand-new String; in a loop,</span>
+<span class="cmt">// that's one throwaway allocation per iteration</span>
+<span class="kw">var</span> result = <span class="str">""</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">1000</span>) {
+    result += <span class="str">"$i, "</span>   <span class="cmt">// allocates a new String every single time</span>
+}
+
+<span class="cmt">// buildString wraps a single, reused StringBuilder —</span>
+<span class="cmt">// one final allocation instead of one per append</span>
+<span class="kw">val</span> better = <span class="fn">buildString</span> {
+    <span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">1000</span>) {
+        <span class="fn">append</span>(i).<span class="fn">append</span>(<span class="str">", "</span>)
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Pre-sizing collections you can size upfront</span>
+          <span class="card-badge badge-green">ArrayList(capacity)</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// mutableListOf() with unknown final size may trigger several</span>
+<span class="cmt">// internal resize-and-copy operations as it grows</span>
+<span class="kw">val</span> results = <span class="fn">mutableListOf</span>&lt;<span class="typ">Int</span>&gt;()
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">10_000</span>) results.<span class="fn">add</span>(i * i)
+
+<span class="cmt">// Pre-sizing when the final count is known avoids those internal</span>
+<span class="cmt">// resizes entirely</span>
+<span class="kw">val</span> presized = <span class="typ">ArrayList</span>&lt;<span class="typ">Int</span>&gt;(<span class="num">10_000</span>)
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">10_000</span>) presized.<span class="fn">add</span>(i * i)</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Profile before optimizing. Every pattern on this page trades some readability or flexibility for a performance property that only matters once you've measured a real bottleneck — applying them preemptively across a codebase, without evidence they're needed, usually just makes the code harder to read for no measurable gain.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Inline function</td><td>inline fun f(block: () -&gt; Unit)</td><td>No lambda object, no virtual call; larger bytecode</td></tr>
+          <tr><td>Zero-cost wrapper</td><td>@JvmInline value class</td><td>Boxed when used as a generic arg or through an interface</td></tr>
+          <tr><td>Unboxed primitive array</td><td>IntArray / DoubleArray / LongArray</td><td>Backed by a real primitive array, avoids per-element boxing</td></tr>
+          <tr><td>Boxed generic collection</td><td>List&lt;Int&gt;</td><td>Every element is a boxed Integer object</td></tr>
+          <tr><td>Lazy chained operations</td><td>list.asSequence().filter{}.map{}</td><td>No intermediate list per step; pays off on long chains</td></tr>
+          <tr><td>Tail-call optimization</td><td>tailrec fun f(...)</td><td>Recursive call must be the very last operation</td></tr>
+          <tr><td>Compile-time constant</td><td>const val X = 3</td><td>Inlined at every call site; top-level/companion only</td></tr>
+          <tr><td>Efficient string building</td><td>buildString { append(...) }</td><td>One StringBuilder instead of repeated += allocations</td></tr>
+          <tr><td>Pre-sized collection</td><td>ArrayList&lt;T&gt;(knownSize)</td><td>Avoids internal resize-and-copy as it grows</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#inline-revisited">1: Inline Functions, Revisited</a></li>
+      <li><a href="#value-classes">2: Value Classes</a></li>
+      <li><a href="#boxing">3: Boxing on the JVM</a></li>
+      <li><a href="#sequences-vs-collections">4: Sequences vs Collections</a></li>
+      <li><a href="#tailrec">5: tailrec</a></li>
+      <li><a href="#const">6: const</a></li>
+      <li><a href="#allocation-aware">7: Allocation-Aware Patterns</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

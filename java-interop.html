@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Java Interop | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Java <span>Interop</span></h1>
+  <p>Calling Java from Kotlin and making Kotlin pleasant to call from Java: platform types, the @Jvm* annotations, SAM conversions, and checked exceptions.</p>
+  <div class="hero-pills">
+    <span>Platform types</span>
+    <span>@JvmStatic</span>
+    <span>@JvmOverloads</span>
+    <span>@JvmField</span>
+    <span>@JvmName</span>
+    <span>SAM conversion</span>
+    <span>Checked exceptions</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html" class="active"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. CALLING JAVA FROM KOTLIN ──────────────────────────── -->
+    <section class="section" id="calling-java">
+      <div class="section-header">
+        <div class="section-icon icon-blue">☕</div>
+        <h2>Calling Java from Kotlin</h2>
+        <span class="section-tag">seamless · same bytecode target</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin compiles to the same JVM bytecode as Java, so calling a Java class, method, or field from Kotlin is direct — no adapter layer, no wrapper generation, no bridging code. Kotlin also smooths over a few Java-specific conventions on the way in: a Java getter/setter pair is exposed as a Kotlin property, and Java's checked exceptions don't require a <code>try</code>/<code>catch</code> the way they would in Java itself (more on that below).</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Getter/setter pairs become properties</span>
+          <span class="card-badge badge-blue">Property syntax</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Java class:</span>
+<span class="cmt">// public class Person {</span>
+<span class="cmt">//     public String getName() { return name; }</span>
+<span class="cmt">//     public void setName(String name) { this.name = name; }</span>
+<span class="cmt">// }</span>
+
+<span class="cmt">// Kotlin sees getName()/setName() and exposes them as a property</span>
+<span class="kw">val</span> person = <span class="typ">Person</span>()
+person.name = <span class="str">"Ada"</span>       <span class="cmt">// calls setName("Ada") under the hood</span>
+<span class="fn">println</span>(person.name)   <span class="cmt">// calls getName()</span>
+
+<span class="cmt">// A Java isXxx() boolean getter is recognized too</span>
+<span class="cmt">// Java: public boolean isActive()</span>
+<span class="kw">if</span> (person.isActive) { <span class="cmt">/* ... */</span> }  <span class="cmt">// calls isActive()</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> there's no equivalent situation in Go — no other language's runtime sits directly underneath it the way the JVM sits underneath Kotlin. Think of Java interop as closer to how Go can link against C via cgo, except vastly more seamless: Kotlin and Java share the exact same bytecode and object model, so there's no FFI boundary or marshaling cost at all.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. PLATFORM TYPES RECAP ──────────────────────────────── -->
+    <section class="section" id="platform-types">
+      <div class="section-header">
+        <div class="section-icon icon-green">👻</div>
+        <h2>Platform Types</h2>
+        <span class="section-tag">Type! · unchecked nullability</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Platform types are covered in full in <a href="null-safety.html">Null Safety</a>. The short version, in interop terms: unannotated Java return types show up in Kotlin as neither <code class="typ">String</code> nor <code class="typ">String?</code> but something in between — Kotlin defers the null-check to you, and the compiler won't stop you from treating a genuinely-null Java return value as non-null.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Treat unannotated Java returns as nullable</span>
+          <span class="card-badge badge-green">Defensive default</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Java: public String getMiddleName() { return middleName; }  (no annotation)</span>
+
+<span class="cmt">// Risky: compiles, but crashes at runtime if getMiddleName() returns null</span>
+<span class="kw">val</span> length = person.middleName.<span class="fn">length</span>
+
+<span class="cmt">// Defensive: assume nullable until the Java source proves otherwise</span>
+<span class="kw">val</span> safeLength = person.middleName?.<span class="fn">length</span> ?: <span class="num">0</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. @JVMSTATIC ────────────────────────────────────────── -->
+    <section class="section" id="jvmstatic">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🔩</div>
+        <h2>@JvmStatic</h2>
+        <span class="section-tag">companion object → true static</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A companion object's members are, by default, accessed from Java through an intermediate <code>Companion</code> field — <code>MyClass.Companion.doThing()</code>, not the clean <code>MyClass.doThing()</code> a Java developer would expect from something that looks static. <code>@JvmStatic</code> tells the compiler to additionally generate a real <code>static</code> method on the enclosing class, so Java callers get the ergonomics they expect.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Generating a true static method for Java callers</span>
+          <span class="card-badge badge-purple">@JvmStatic</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">MathUtils</span> {
+    <span class="kw">companion</span> <span class="kw">object</span> {
+        <span class="fn">@JvmStatic</span>
+        <span class="kw">fun</span> <span class="fn">square</span>(n: <span class="typ">Int</span>) = n * n
+
+        <span class="kw">fun</span> <span class="fn">cube</span>(n: <span class="typ">Int</span>) = n * n * n  <span class="cmt">// no @JvmStatic</span>
+    }
+}
+
+<span class="cmt">// From Kotlin, both call the same regardless of the annotation:</span>
+<span class="typ">MathUtils</span>.<span class="fn">square</span>(<span class="num">4</span>)
+<span class="typ">MathUtils</span>.<span class="fn">cube</span>(<span class="num">4</span>)
+
+<span class="cmt">// From Java, the annotation changes what's callable:</span>
+<span class="cmt">// MathUtils.square(4);              // works: true static method</span>
+<span class="cmt">// MathUtils.cube(4);                // ERROR: not visible this way</span>
+<span class="cmt">// MathUtils.Companion.cube(4);      // works: through the Companion field</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>If a Kotlin library or module is meant to be consumed from Java at all, annotate every companion object member intended as a public factory or utility function with <code>@JvmStatic</code>. It costs nothing for Kotlin callers and removes an awkward <code>.Companion.</code> stepping stone for Java ones.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. @JVMOVERLOADS ─────────────────────────────────────── -->
+    <section class="section" id="jvmoverloads">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🎛</div>
+        <h2>@JvmOverloads</h2>
+        <span class="section-tag">default args → real overloads</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Java has no concept of a default parameter value, so a Kotlin function with defaults compiles to a single method requiring every argument — Java callers can't omit any of them. <code>@JvmOverloads</code> tells the compiler to additionally generate one overload per default parameter, dropped from the end inward, restoring the flexibility Kotlin callers already had.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Generating overloads for Java callers</span>
+          <span class="card-badge badge-gold">@JvmOverloads</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Greeter</span> {
+    <span class="fn">@JvmOverloads</span>
+    <span class="kw">fun</span> <span class="fn">greet</span>(name: <span class="typ">String</span>, greeting: <span class="typ">String</span> = <span class="str">"Hello"</span>, punctuation: <span class="typ">String</span> = <span class="str">"!"</span>): <span class="typ">String</span> {
+        <span class="kw">return</span> <span class="str">"$greeting, $name$punctuation"</span>
+    }
+}
+
+<span class="cmt">// From Kotlin, unchanged: named/default args work regardless of the annotation</span>
+<span class="typ">Greeter</span>().<span class="fn">greet</span>(<span class="str">"Ada"</span>)
+
+<span class="cmt">// From Java, @JvmOverloads generates three real overloads:</span>
+<span class="cmt">// greeter.greet("Ada");</span>
+<span class="cmt">// greeter.greet("Ada", "Hi");</span>
+<span class="cmt">// greeter.greet("Ada", "Hi", "?!");</span>
+<span class="cmt">// Without the annotation, Java would need to pass all three arguments every time</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. @JVMFIELD & @JVMNAME ──────────────────────────────── -->
+    <section class="section" id="jvmfield-jvmname">
+      <div class="section-header">
+        <div class="section-icon icon-red">🏷</div>
+        <h2>@JvmField &amp; @JvmName</h2>
+        <span class="section-tag">expose raw field · rename for Java</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Every Kotlin property compiles to a private field plus getter/setter methods, even a trivial one — which is unnecessary overhead when Java code just wants to touch a plain public field directly. <code>@JvmField</code> exposes the backing field itself, skipping the accessor methods entirely. <code>@JvmName</code> is a different, narrower tool: it renames the generated method or property, most often to work around a Java-side naming collision that Kotlin's own overload resolution otherwise wouldn't see.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">@JvmField: skip the accessor methods</span>
+          <span class="card-badge badge-red">@JvmField</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Config</span> {
+    <span class="fn">@JvmField</span>
+    <span class="kw">val</span> version: <span class="typ">String</span> = <span class="str">"1.0"</span>
+    <span class="cmt">// Java: config.version (direct field access, no getVersion() call)</span>
+    <span class="cmt">// Without @JvmField, Java would need config.getVersion()</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">@JvmName: resolve a Java-visible name clash</span>
+          <span class="card-badge badge-red">@JvmName</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Two top-level functions overloaded on a generic type parameter alone —</span>
+<span class="cmt">// legal in Kotlin (different erased signatures don't matter to Kotlin's</span>
+<span class="cmt">// own overload resolution), but they'd erase to the same JVM signature</span>
+<span class="fn">@JvmName</span>(<span class="str">"filterInts"</span>)
+<span class="kw">fun</span> <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt;.<span class="fn">filterValid</span>(): <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt; = <span class="fn">filter</span> { it > <span class="num">0</span> }
+
+<span class="fn">@JvmName</span>(<span class="str">"filterStrings"</span>)
+<span class="kw">fun</span> <span class="typ">List</span>&lt;<span class="typ">String</span>&gt;.<span class="fn">filterValid</span>(): <span class="typ">List</span>&lt;<span class="typ">String</span>&gt; = <span class="fn">filter</span> { it.<span class="fn">isNotBlank</span>() }
+
+<span class="cmt">// From Kotlin, both are still called filterValid() — @JvmName only</span>
+<span class="cmt">// changes what the method is called from the Java side</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 6. SAM CONVERSIONS ───────────────────────────────────── -->
+    <section class="section" id="sam-conversions">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🎯</div>
+        <h2>SAM Conversions</h2>
+        <span class="section-tag">Single Abstract Method · Runnable · lambda</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A SAM (Single Abstract Method) interface — Java's <code class="typ">Runnable</code>, <code class="typ">Comparator&lt;T&gt;</code>, or any custom functional interface — can be satisfied with a Kotlin lambda directly, without an explicit anonymous class. The compiler generates the wrapper for you. This works automatically for Java interfaces; for a Kotlin-defined interface, you need to mark it <code>fun interface</code> to opt in.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Java functional interfaces, called with a lambda</span>
+          <span class="card-badge badge-blue">SAM conversion</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// java.lang.Runnable is a Java SAM interface: void run()</span>
+<span class="kw">val</span> task: <span class="typ">Runnable</span> = <span class="typ">Runnable</span> { <span class="fn">println</span>(<span class="str">"running"</span>) }
+<span class="typ">Thread</span>(task).<span class="fn">start</span>()
+
+<span class="cmt">// Comparator<T>: another common Java SAM</span>
+<span class="kw">val</span> byLength = <span class="typ">Comparator</span>&lt;<span class="typ">String</span>&gt; { a, b -> a.length - b.length }
+<span class="kw">val</span> sorted = <span class="fn">listOf</span>(<span class="str">"ccc"</span>, <span class="str">"a"</span>, <span class="str">"bb"</span>).<span class="fn">sortedWith</span>(byLength)
+<span class="fn">println</span>(sorted)  <span class="cmt">// [a, bb, ccc]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">fun interface: opting a Kotlin interface into SAM conversion</span>
+          <span class="card-badge badge-blue">fun interface</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Without `fun`, this would need an explicit object : Validator { ... }</span>
+<span class="kw">fun</span> <span class="kw">interface</span> <span class="typ">Validator</span> {
+    <span class="kw">fun</span> <span class="fn">isValid</span>(input: <span class="typ">String</span>): <span class="typ">Boolean</span>
+}
+
+<span class="kw">fun</span> <span class="fn">check</span>(input: <span class="typ">String</span>, validator: <span class="typ">Validator</span>) =
+    <span class="kw">if</span> (validator.<span class="fn">isValid</span>(input)) <span class="str">"valid"</span> <span class="kw">else</span> <span class="str">"invalid"</span>
+
+<span class="cmt">// A plain lambda satisfies the interface directly</span>
+<span class="fn">println</span>(<span class="fn">check</span>(<span class="str">"hello"</span>) { it.<span class="fn">isNotBlank</span>() })  <span class="cmt">// "valid"</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 7. CHECKED EXCEPTIONS ────────────────────────────────── -->
+    <section class="section" id="checked-exceptions">
+      <div class="section-header">
+        <div class="section-icon icon-green">🚨</div>
+        <h2>Checked Exceptions</h2>
+        <span class="section-tag">no checked exceptions · @Throws</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin has no checked exceptions at all — every exception, including <code class="typ">IOException</code>, is unchecked as far as the Kotlin compiler is concerned. Calling a Java method that declares <code>throws IOException</code> compiles without a <code>try</code>/<code>catch</code> in Kotlin, no different from calling one that throws an unchecked <code class="typ">RuntimeException</code>. Going the other direction — a Kotlin function called from Java — needs an explicit annotation if you want Java callers to be forced to handle it.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Calling checked-throwing Java, unchecked</span>
+          <span class="card-badge badge-green">No forced catch</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Java: public String readFile(String path) throws IOException { ... }</span>
+
+<span class="cmt">// Kotlin doesn't require a try/catch — it compiles either way</span>
+<span class="kw">fun</span> <span class="fn">loadConfig</span>(): <span class="typ">String</span> {
+    <span class="kw">return</span> fileReader.<span class="fn">readFile</span>(<span class="str">"config.json"</span>)  <span class="cmt">// no try/catch needed to compile</span>
+}
+
+<span class="cmt">// You can still choose to handle it, same as any exception</span>
+<span class="kw">fun</span> <span class="fn">loadConfigSafely</span>(): <span class="typ">String</span>? = <span class="kw">try</span> {
+    fileReader.<span class="fn">readFile</span>(<span class="str">"config.json"</span>)
+} <span class="kw">catch</span> (e: <span class="typ">IOException</span>) {
+    <span class="kw">null</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">@Throws: declaring one for Java callers</span>
+          <span class="card-badge badge-green">@Throws</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Without @Throws, the compiled bytecode declares no checked exceptions,</span>
+<span class="cmt">// so Java callers wouldn't even be prompted to handle IOException</span>
+<span class="fn">@Throws(IOException::class)</span>
+<span class="kw">fun</span> <span class="fn">readConfigFile</span>(path: <span class="typ">String</span>): <span class="typ">String</span> {
+    <span class="kw">if</span> (!<span class="typ">File</span>(path).<span class="fn">exists</span>()) {
+        <span class="kw">throw</span> <span class="typ">IOException</span>(<span class="str">"config not found: $path"</span>)
+    }
+    <span class="kw">return</span> <span class="typ">File</span>(path).<span class="fn">readText</span>()
+}
+<span class="cmt">// Java callers now see "throws IOException" and must catch or declare it,</span>
+<span class="cmt">// matching what a Java-authored method with the same behavior would require</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Java getter/setter → property</td><td>obj.name (calls getName/setName)</td><td>Automatic; isXxx() → obj.isXxx too</td></tr>
+          <tr><td>Platform type</td><td>String! (tooling display only)</td><td>Unannotated Java return; treat as nullable</td></tr>
+          <tr><td>True static method</td><td>@JvmStatic on a companion member</td><td>Avoids MyClass.Companion.f() from Java</td></tr>
+          <tr><td>Generated overloads</td><td>@JvmOverloads on a function with defaults</td><td>One overload per trailing default parameter</td></tr>
+          <tr><td>Raw field access</td><td>@JvmField val x = ...</td><td>Skips getter/setter generation</td></tr>
+          <tr><td>Rename for Java</td><td>@JvmName("newName")</td><td>Resolves JVM-signature clashes; no effect in Kotlin</td></tr>
+          <tr><td>SAM conversion (Java)</td><td>val r: Runnable = Runnable { ... }</td><td>Automatic for any Java functional interface</td></tr>
+          <tr><td>SAM conversion (Kotlin)</td><td>fun interface Validator { ... }</td><td>Opts a Kotlin interface into lambda conversion</td></tr>
+          <tr><td>Checked exceptions</td><td>none in Kotlin</td><td>Calling throws-declaring Java needs no try/catch</td></tr>
+          <tr><td>Declare for Java callers</td><td>@Throws(IOException::class)</td><td>Makes Java see and enforce the checked exception</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#calling-java">1: Calling Java from Kotlin</a></li>
+      <li><a href="#platform-types">2: Platform Types</a></li>
+      <li><a href="#jvmstatic">3: @JvmStatic</a></li>
+      <li><a href="#jvmoverloads">4: @JvmOverloads</a></li>
+      <li><a href="#jvmfield-jvmname">5: @JvmField &amp; @JvmName</a></li>
+      <li><a href="#sam-conversions">6: SAM Conversions</a></li>
+      <li><a href="#checked-exceptions">7: Checked Exceptions</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
