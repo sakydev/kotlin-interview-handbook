@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Functions &amp; Lambdas | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Functions <span>&amp; Lambdas</span></h1>
+  <p>Higher-order functions, lambda syntax, extension functions, inline, and the pieces that make Kotlin feel functional.</p>
+  <div class="hero-pills">
+    <span>Higher-order fns</span>
+    <span>Lambda &amp; it</span>
+    <span>Function refs</span>
+    <span>inline</span>
+    <span>Extensions</span>
+    <span>infix</span>
+    <span>Operators</span>
+    <span>Local functions</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html" class="active"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. HIGHER-ORDER FUNCTIONS ─────────────────────────────── -->
+    <section class="section" id="higher-order">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔼</div>
+        <h2>Higher-Order Functions</h2>
+        <span class="section-tag">function types · (T) -&gt; R</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A higher-order function is one that takes another function as a parameter, returns one, or both. Kotlin makes this natural because function types are ordinary types — <code>(Int, Int) -&gt; Int</code> is a real type you can declare a variable with, pass around, and store in a data structure, the same as <code class="typ">String</code> or <code class="typ">List&lt;Int&gt;</code>. This is the foundation everything else on this page builds on: lambdas, extension functions, and most of the collections API all come down to functions accepting functions.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Function types as parameters</span>
+          <span class="card-badge badge-blue">(T) -&gt; R</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// The parameter `operation` has type (Int, Int) -> Int:</span>
+<span class="cmt">// a function taking two Ints and returning an Int</span>
+<span class="kw">fun</span> <span class="fn">calculate</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>, operation: (<span class="typ">Int</span>, <span class="typ">Int</span>) -> <span class="typ">Int</span>): <span class="typ">Int</span> {
+    <span class="kw">return</span> <span class="fn">operation</span>(a, b)
+}
+
+<span class="kw">val</span> sum = <span class="fn">calculate</span>(<span class="num">3</span>, <span class="num">4</span>) { x, y -> x + y }
+<span class="fn">println</span>(sum) <span class="cmt">// 7</span>
+
+<span class="cmt">// A named function reference works anywhere a lambda would</span>
+<span class="kw">fun</span> <span class="fn">multiply</span>(x: <span class="typ">Int</span>, y: <span class="typ">Int</span>) = x * y
+<span class="fn">println</span>(<span class="fn">calculate</span>(<span class="num">3</span>, <span class="num">4</span>, ::multiply)) <span class="cmt">// 12</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Returning a function</span>
+          <span class="card-badge badge-blue">Factory</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// A function can return another function: the returned lambda</span>
+<span class="cmt">// closes over `factor` from the enclosing scope</span>
+<span class="kw">fun</span> <span class="fn">multiplier</span>(factor: <span class="typ">Int</span>): (<span class="typ">Int</span>) -> <span class="typ">Int</span> {
+    <span class="kw">return</span> { n -> n * factor }
+}
+
+<span class="kw">val</span> triple = <span class="fn">multiplier</span>(<span class="num">3</span>)
+<span class="fn">println</span>(<span class="fn">triple</span>(<span class="num">5</span>))  <span class="cmt">// 15</span>
+<span class="fn">println</span>(<span class="fn">triple</span>(<span class="num">10</span>)) <span class="cmt">// 30</span>
+
+<span class="kw">val</span> double = <span class="fn">multiplier</span>(<span class="num">2</span>)
+<span class="fn">println</span>(<span class="fn">double</span>(<span class="num">5</span>))  <span class="cmt">// 10: independent closure, own captured `factor`</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go already treats functions as first-class values — <code>func(int, int) int</code> is a real type, and returning closures is idiomatic Go too. The syntax difference is mostly cosmetic: Kotlin's <code>(Int, Int) -&gt; Int</code> reads left-to-right as "these params, this return," where Go's <code>func(a, b int) int</code> keeps the C-style declaration order.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. LAMBDA SYNTAX & IT ────────────────────────────────── -->
+    <section class="section" id="lambda-syntax">
+      <div class="section-header">
+        <div class="section-icon icon-green">🪶</div>
+        <h2>Lambda Syntax &amp; it</h2>
+        <span class="section-tag">{ x -&gt; ... } · it · implicit single param</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A lambda in Kotlin is always written inside curly braces, never with a <code>fun</code> keyword or parentheses around the parameter list — that's how the compiler tells a lambda literal apart from a block. When a lambda takes exactly one parameter and you don't need to name it, Kotlin lets you drop the parameter declaration entirely and refer to it as <code>it</code>. This isn't magic scoping; it's a single, well-known implicit name the compiler makes available.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Anatomy of a lambda</span>
+          <span class="card-badge badge-green">{ params -&gt; body }</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Full form: parameter list, arrow, body — all inside { }</span>
+<span class="kw">val</span> add: (<span class="typ">Int</span>, <span class="typ">Int</span>) -> <span class="typ">Int</span> = { a, b -> a + b }
+<span class="fn">println</span>(<span class="fn">add</span>(<span class="num">2</span>, <span class="num">3</span>)) <span class="cmt">// 5</span>
+
+<span class="cmt">// The last expression in the body is the return value: no "return" needed</span>
+<span class="kw">val</span> describe: (<span class="typ">Int</span>) -> <span class="typ">String</span> = { n ->
+    <span class="kw">val</span> parity = <span class="kw">if</span> (n % <span class="num">2</span> == <span class="num">0</span>) <span class="str">"even"</span> <span class="kw">else</span> <span class="str">"odd"</span>
+    <span class="str">"$n is $parity"</span>   <span class="cmt">// this is the lambda's result</span>
+}
+<span class="fn">println</span>(<span class="fn">describe</span>(<span class="num">4</span>)) <span class="cmt">// "4 is even"</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">it: the implicit single parameter</span>
+          <span class="card-badge badge-green">it</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>)
+
+<span class="cmt">// Named parameter form</span>
+numbers.<span class="fn">filter</span> { n -> n % <span class="num">2</span> == <span class="num">0</span> }
+
+<span class="cmt">// it: implicit name, valid only for single-parameter lambdas</span>
+numbers.<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> }   <span class="cmt">// [2, 4]</span>
+numbers.<span class="fn">map</span> { it * it }             <span class="cmt">// [1, 4, 9, 16, 25]</span>
+
+<span class="cmt">// Nested single-param lambdas shadow `it` — name explicitly to avoid confusion</span>
+numbers.<span class="fn">map</span> { outer ->
+    numbers.<span class="fn">filter</span> { it > outer }.<span class="fn">count</span>()
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Use <code>it</code> for short, single-purpose lambdas where the meaning is obvious from context — <code>filter { it > 0 }</code> reads fine. Once a lambda spans more than a line or two, or you're nesting lambdas, name the parameter explicitly. <code>it</code> inside <code>it</code> is a real readability trap, and linters like detekt flag it for exactly that reason.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. TRAILING LAMBDA SYNTAX ────────────────────────────── -->
+    <section class="section" id="trailing-lambda">
+      <div class="section-header">
+        <div class="section-icon icon-purple">➡️</div>
+        <h2>Trailing Lambda Syntax</h2>
+        <span class="section-tag">last param · DSL shape</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">When a function's last parameter is a function type, Kotlin lets you move the lambda argument outside the parentheses — and if the lambda is the <em>only</em> argument, you can drop the parentheses entirely. This single syntax rule is what makes Kotlin's standard library functions (<code>let</code>, <code>run</code>, <code>apply</code>, collection operators) and DSL builders (Gradle's Kotlin DSL, Compose) read like built-in language constructs instead of ordinary function calls.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Moving the lambda outside the parens</span>
+          <span class="card-badge badge-purple">Trailing</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">repeat3</span>(times: <span class="typ">Int</span>, action: (<span class="typ">Int</span>) -> <span class="typ">Unit</span>) {
+    <span class="kw">for</span> (i <span class="kw">in</span> <span class="num">0</span>..&lt;times) <span class="fn">action</span>(i)
+}
+
+<span class="cmt">// Fully explicit call: lambda passed as an ordinary argument</span>
+<span class="fn">repeat3</span>(<span class="num">3</span>, { i -> <span class="fn">println</span>(<span class="str">"iteration $i"</span>) })
+
+<span class="cmt">// Idiomatic: the trailing lambda moves outside ()</span>
+<span class="fn">repeat3</span>(<span class="num">3</span>) { i -> <span class="fn">println</span>(<span class="str">"iteration $i"</span>) }
+
+<span class="cmt">// When the lambda is the ONLY argument, () can be dropped entirely</span>
+<span class="kw">fun</span> <span class="fn">runTwice</span>(action: () -> <span class="typ">Unit</span>) { <span class="fn">action</span>(); <span class="fn">action</span>() }
+<span class="fn">runTwice</span> { <span class="fn">println</span>(<span class="str">"hi"</span>) }   <span class="cmt">// no () before the { at all</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Why this powers Kotlin's DSLs</span>
+          <span class="card-badge badge-purple">DSL shape</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Trailing lambdas compose: a function taking a receiver lambda</span>
+<span class="cmt">// (see extension functions below) plus trailing syntax is the whole</span>
+<span class="cmt">// trick behind Gradle's build.gradle.kts and Kotlin HTML builders</span>
+<span class="kw">fun</span> <span class="fn">html</span>(build: <span class="typ">StringBuilder</span>.() -> <span class="typ">Unit</span>): <span class="typ">String</span> {
+    <span class="kw">val</span> sb = <span class="typ">StringBuilder</span>()
+    sb.<span class="fn">build</span>()
+    <span class="kw">return</span> sb.<span class="fn">toString</span>()
+}
+
+<span class="kw">val</span> page = <span class="fn">html</span> {
+    <span class="fn">append</span>(<span class="str">"&lt;h1&gt;"</span>)
+    <span class="fn">append</span>(<span class="str">"Hello"</span>)
+    <span class="fn">append</span>(<span class="str">"&lt;/h1&gt;"</span>)
+}
+<span class="fn">println</span>(page) <span class="cmt">// &lt;h1&gt;Hello&lt;/h1&gt;</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has no equivalent syntax sugar — a callback is always passed as an ordinary trailing argument inside the parens: <code>doWork(3, func(i int) { ... })</code>. Trailing lambda syntax is a purely Kotlin ergonomic win; there's nothing to unlearn here, just a shorter way to write the same call shape.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. FUNCTION REFERENCES ───────────────────────────────── -->
+    <section class="section" id="function-references">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🔗</div>
+        <h2>Function References</h2>
+        <span class="section-tag">:: · method refs · constructor refs</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">The <code>::</code> operator turns an existing named function, method, property, or constructor into a value of function type, without wrapping it in a lambda by hand. It's most useful when a lambda would just forward its arguments to an existing function — <code>{ x -> foo(x) }</code> and <code>::foo</code> do the same thing, and the reference is shorter and states the intent more directly.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Top-level, member, and constructor references</span>
+          <span class="card-badge badge-gold">::</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">isEven</span>(n: <span class="typ">Int</span>) = n % <span class="num">2</span> == <span class="num">0</span>
+
+<span class="kw">val</span> numbers = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>, <span class="num">6</span>)
+
+<span class="cmt">// Top-level function reference: no lambda wrapper needed</span>
+<span class="fn">println</span>(numbers.<span class="fn">filter</span>(::isEven))  <span class="cmt">// [2, 4, 6]</span>
+
+<span class="cmt">// Member reference: Type::method, bound at each call to its receiver</span>
+<span class="kw">val</span> words = <span class="fn">listOf</span>(<span class="str">"kotlin"</span>, <span class="str">"go"</span>, <span class="str">"rust"</span>)
+<span class="fn">println</span>(words.<span class="fn">map</span>(<span class="typ">String</span>::uppercase))  <span class="cmt">// [KOTLIN, GO, RUST]</span>
+
+<span class="cmt">// Bound reference: fixed to one specific instance</span>
+<span class="kw">val</span> greeting = <span class="str">"hello"</span>
+<span class="kw">val</span> lengthOfGreeting = greeting::length
+<span class="fn">println</span>(<span class="fn">lengthOfGreeting</span>())  <span class="cmt">// 5</span>
+
+<span class="cmt">// Constructor reference: ::ClassName builds instances</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Point</span>(<span class="kw">val</span> x: <span class="typ">Int</span>, <span class="kw">val</span> y: <span class="typ">Int</span>)
+<span class="kw">val</span> coords = <span class="fn">listOf</span>(<span class="num">1</span> <span class="kw">to</span> <span class="num">2</span>, <span class="num">3</span> <span class="kw">to</span> <span class="num">4</span>)
+<span class="kw">val</span> points = coords.<span class="fn">map</span> { (x, y) -> <span class="typ">Point</span>(x, y) }
+<span class="cmt">// or, pointfree: coords.map(::Point) doesn't fit here since Point</span>
+<span class="cmt">// needs destructuring first, but a single-arg constructor works directly:</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Id</span>(<span class="kw">val</span> value: <span class="typ">Int</span>)
+<span class="kw">val</span> ids = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>).<span class="fn">map</span>(::Id)</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for a function reference when a lambda would do nothing but forward its parameters unchanged. <code>list.map { it.uppercase() }</code> and <code>list.map(String::uppercase)</code> compile to essentially the same thing — the reference form just says "apply this existing function" without the extra visual noise of a parameter name you never use for anything else.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. INLINE, NOINLINE, CROSSINLINE ─────────────────────── -->
+    <section class="section" id="inline">
+      <div class="section-header">
+        <div class="section-icon icon-red">🔥</div>
+        <h2>inline, noinline, crossinline</h2>
+        <span class="section-tag">inline fun · noinline · crossinline</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Every lambda you write is, under the hood, an object implementing a function interface — passing one to a higher-order function normally means allocating that object and paying a virtual call to invoke it. Marking a function <code>inline</code> tells the compiler to paste the function's body, and the lambda's body, directly into every call site at compile time. No object, no virtual call — and as a bonus, <code>return</code> inside the lambda can return from the enclosing function, not just the lambda (a "non-local return").</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">inline: erase the call overhead</span>
+          <span class="card-badge badge-red">inline</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Without inline: block is an object, action() is a virtual call</span>
+<span class="kw">fun</span> <span class="fn">measure</span>(block: () -> <span class="typ">Unit</span>): <span class="typ">Long</span> {
+    <span class="kw">val</span> start = <span class="typ">System</span>.<span class="fn">nanoTime</span>()
+    <span class="fn">block</span>()
+    <span class="kw">return</span> <span class="typ">System</span>.<span class="fn">nanoTime</span>() - start
+}
+
+<span class="cmt">// inline: the compiler pastes measure()'s body AND the lambda's body</span>
+<span class="cmt">// directly at the call site — no allocation, no virtual dispatch</span>
+<span class="kw">inline</span> <span class="kw">fun</span> <span class="fn">measureInline</span>(block: () -> <span class="typ">Unit</span>): <span class="typ">Long</span> {
+    <span class="kw">val</span> start = <span class="typ">System</span>.<span class="fn">nanoTime</span>()
+    <span class="fn">block</span>()
+    <span class="kw">return</span> <span class="typ">System</span>.<span class="fn">nanoTime</span>() - start
+}
+
+<span class="cmt">// A non-local return: only legal because measureInline is inline —</span>
+<span class="cmt">// the lambda's body is pasted into processItems' own body</span>
+<span class="kw">fun</span> <span class="fn">processItems</span>(items: <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt;) {
+    <span class="fn">measureInline</span> {
+        <span class="kw">for</span> (item <span class="kw">in</span> items) {
+            <span class="kw">if</span> (item < <span class="num">0</span>) <span class="kw">return</span>  <span class="cmt">// returns from processItems, not just the lambda</span>
+            <span class="fn">println</span>(item)
+        }
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">noinline &amp; crossinline</span>
+          <span class="card-badge badge-red">Modifiers</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// noinline: opt one specific lambda parameter OUT of inlining</span>
+<span class="cmt">// (needed when you must store the lambda or pass it onward as an object)</span>
+<span class="kw">inline</span> <span class="kw">fun</span> <span class="fn">process</span>(
+    <span class="kw">inline</span> action: () -> <span class="typ">Unit</span>,
+    <span class="kw">noinline</span> callback: () -> <span class="typ">Unit</span>
+) {
+    <span class="fn">action</span>()
+    <span class="fn">storeForLater</span>(callback)   <span class="cmt">// callback must be a real object to store it</span>
+}
+
+<span class="cmt">// crossinline: still inlined, but forbids non-local return —</span>
+<span class="cmt">// required when the lambda runs inside another execution context</span>
+<span class="cmt">// (like a different thread or a nested function) where "return" from</span>
+<span class="cmt">// the outer function wouldn't make sense</span>
+<span class="kw">inline</span> <span class="kw">fun</span> <span class="fn">runInBackground</span>(<span class="kw">crossinline</span> action: () -> <span class="typ">Unit</span>) {
+    <span class="typ">Thread</span> { action() }.<span class="fn">start</span>()
+    <span class="cmt">// without crossinline, `return` inside action would try to return</span>
+    <span class="cmt">// from runInBackground after it may have already returned</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>The Kotlin standard library marks nearly every scope function and collection operator (<code>let</code>, <code>map</code>, <code>filter</code>, <code>forEach</code>) as <code>inline</code>, which is exactly why non-local <code>return</code> works inside a <code>forEach</code> lambda but not inside a regular function-type parameter you declare yourself. See <a href="gotchas.html">Gotchas</a> for the flip side: what happens when you rely on non-local return without realizing the function isn't inline.</div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Don't reach for <code>inline</code> by default. It increases compiled bytecode size at every call site (code duplication, effectively), so it only pays off for small, frequently-called functions — the exact profile of scope functions and collection operators. See <a href="performance.html">Performance</a> for when inlining actually helps versus when it just bloats the binary.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. EXTENSION FUNCTIONS ───────────────────────────────── -->
+    <section class="section" id="extensions">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🧩</div>
+        <h2>Extension Functions</h2>
+        <span class="section-tag">fun T.name() · receiver · static dispatch</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">An extension function lets you add a member-call-syntax function to a type you don't own — including types from the standard library or a third-party dependency — without subclassing it or modifying its source. Inside the function body, <code>this</code> refers to the receiver, the instance the extension was called on. It's syntactic sugar over an ordinary static function taking the receiver as its first parameter; nothing about the original type actually changes; there is no reflection or monkey-patching involved.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Adding a function to an existing type</span>
+          <span class="card-badge badge-blue">fun T.name()</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Extends String — a type you can't modify — with a new member</span>
+<span class="kw">fun</span> <span class="typ">String</span>.<span class="fn">isPalindrome</span>(): <span class="typ">Boolean</span> {
+    <span class="kw">val</span> cleaned = <span class="kw">this</span>.<span class="fn">lowercase</span>().<span class="fn">filter</span> { it.<span class="fn">isLetterOrDigit</span>() }
+    <span class="kw">return</span> cleaned == cleaned.<span class="fn">reversed</span>()
+}
+
+<span class="fn">println</span>(<span class="str">"racecar"</span>.<span class="fn">isPalindrome</span>())         <span class="cmt">// true</span>
+<span class="fn">println</span>(<span class="str">"A man, a plan, a canal: Panama"</span>.<span class="fn">isPalindrome</span>()) <span class="cmt">// true</span>
+<span class="fn">println</span>(<span class="str">"kotlin"</span>.<span class="fn">isPalindrome</span>())           <span class="cmt">// false</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Resolved statically, not virtually</span>
+          <span class="card-badge badge-blue">Static dispatch</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">open</span> <span class="kw">class</span> <span class="typ">Animal</span>
+<span class="kw">class</span> <span class="typ">Dog</span> : <span class="typ">Animal</span>()
+
+<span class="cmt">// Extension functions are chosen based on the DECLARED (compile-time)</span>
+<span class="cmt">// type, not the runtime type — unlike overridden member functions</span>
+<span class="kw">fun</span> <span class="typ">Animal</span>.<span class="fn">describe</span>() = <span class="str">"an animal"</span>
+<span class="kw">fun</span> <span class="typ">Dog</span>.<span class="fn">describe</span>() = <span class="str">"a dog"</span>
+
+<span class="kw">val</span> animal: <span class="typ">Animal</span> = <span class="typ">Dog</span>()  <span class="cmt">// declared type: Animal, runtime type: Dog</span>
+<span class="fn">println</span>(animal.<span class="fn">describe</span>())  <span class="cmt">// "an animal" — resolved by the declared type Animal</span>
+
+<span class="kw">val</span> dog: <span class="typ">Dog</span> = <span class="typ">Dog</span>()
+<span class="fn">println</span>(dog.<span class="fn">describe</span>())     <span class="cmt">// "a dog"</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>This static resolution is the sharpest gotcha with extension functions: they look like polymorphic member calls but aren't. If you need runtime-type dispatch, use a real member function or override, not an extension. Extensions are for adding utility behavior to types, not for modeling polymorphism.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go can't add a method to a type it doesn't own either (no methods on types from other packages), so the usual workaround is a free function, <code>IsPalindrome(s string) bool</code>. Extension functions give you the same capability but with method call syntax at the use site: <code>s.isPalindrome()</code> reads better than <code>IsPalindrome(s)</code> when you're chaining several calls together.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. INFIX FUNCTIONS ───────────────────────────────────── -->
+    <section class="section" id="infix">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔀</div>
+        <h2>infix Functions</h2>
+        <span class="section-tag">infix · to · one param only</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Marking a single-parameter member or extension function <code>infix</code> lets you call it without the dot or parentheses: <code>a to b</code> instead of <code>a.to(b)</code>. It's a narrow feature with a narrow purpose — making a small set of calls read like natural-language operators — and the compiler enforces the constraint that keeps it from getting out of hand: exactly one parameter, no defaults, no vararg.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Declaring and using infix functions</span>
+          <span class="card-badge badge-green">infix</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// to, from the standard library, builds a Pair — the most common</span>
+<span class="cmt">// infix function you'll use without even thinking about it</span>
+<span class="kw">val</span> entry = <span class="num">1</span> <span class="kw">to</span> <span class="str">"one"</span>   <span class="cmt">// same as 1.to("one"), produces Pair(1, "one")</span>
+
+<span class="cmt">// Defining your own</span>
+<span class="kw">infix</span> <span class="kw">fun</span> <span class="typ">Int</span>.<span class="fn">until</span>(other: <span class="typ">Int</span>): <span class="typ">IntRange</span> = <span class="kw">this</span>..&lt;other
+<span class="fn">println</span>((<span class="num">1</span> <span class="fn">until</span> <span class="num">5</span>).<span class="fn">toList</span>())  <span class="cmt">// [1, 2, 3, 4]</span>
+
+<span class="kw">class</span> <span class="typ">Vector2</span>(<span class="kw">val</span> x: <span class="typ">Double</span>, <span class="kw">val</span> y: <span class="typ">Double</span>) {
+    <span class="kw">infix</span> <span class="kw">fun</span> <span class="fn">dot</span>(other: <span class="typ">Vector2</span>) = x * other.x + y * other.y
+}
+<span class="kw">val</span> v1 = <span class="typ">Vector2</span>(<span class="num">1.0</span>, <span class="num">2.0</span>)
+<span class="kw">val</span> v2 = <span class="typ">Vector2</span>(<span class="num">3.0</span>, <span class="num">4.0</span>)
+<span class="fn">println</span>(v1 <span class="fn">dot</span> v2)  <span class="cmt">// 11.0</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reserve <code>infix</code> for functions that genuinely read like an operator or a natural sentence — <code>to</code>, <code>and</code>, <code>zip</code>, <code>step</code>. Slapping it on ordinary methods just to save a dot and parens usually hurts readability rather than helping it; the standard library uses it sparingly for exactly this reason.</div>
+      </div>
+    </section>
+
+    <!-- ── 8. OPERATOR OVERLOADING ──────────────────────────────── -->
+    <section class="section" id="operator-overloading">
+      <div class="section-header">
+        <div class="section-icon icon-purple">➕</div>
+        <h2>Operator Overloading</h2>
+        <span class="section-tag">operator fun · plus · times · get/set</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin lets you define what <code>+</code>, <code>*</code>, <code>[]</code>, and a fixed set of other operators mean for your own types, by implementing a function with a specific name and the <code>operator</code> modifier. It's not open-ended operator invention — you can't create a new symbol — but the closed list covers arithmetic, comparison, indexing, and invocation, which is enough to make math-like types (vectors, matrices, money) read naturally.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Arithmetic operators</span>
+          <span class="card-badge badge-purple">operator fun plus</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Vector2</span>(<span class="kw">val</span> x: <span class="typ">Double</span>, <span class="kw">val</span> y: <span class="typ">Double</span>) {
+    <span class="cmt">// a + b desugars to a.plus(b)</span>
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">plus</span>(other: <span class="typ">Vector2</span>) = <span class="typ">Vector2</span>(x + other.x, y + other.y)
+
+    <span class="cmt">// a * scalar desugars to a.times(scalar)</span>
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">times</span>(scalar: <span class="typ">Double</span>) = <span class="typ">Vector2</span>(x * scalar, y * scalar)
+
+    <span class="cmt">// unary minus: -a desugars to a.unaryMinus()</span>
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">unaryMinus</span>() = <span class="typ">Vector2</span>(-x, -y)
+}
+
+<span class="kw">val</span> a = <span class="typ">Vector2</span>(<span class="num">1.0</span>, <span class="num">2.0</span>)
+<span class="kw">val</span> b = <span class="typ">Vector2</span>(<span class="num">3.0</span>, <span class="num">4.0</span>)
+<span class="fn">println</span>(a + b)    <span class="cmt">// Vector2(x=4.0, y=6.0)</span>
+<span class="fn">println</span>(a * <span class="num">2.0</span>)  <span class="cmt">// Vector2(x=2.0, y=4.0)</span>
+<span class="fn">println</span>(-a)       <span class="cmt">// Vector2(x=-1.0, y=-2.0)</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Indexing &amp; invocation</span>
+          <span class="card-badge badge-purple">get / invoke</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Grid</span>(<span class="kw">val</span> width: <span class="typ">Int</span>, <span class="kw">val</span> height: <span class="typ">Int</span>) {
+    <span class="kw">private</span> <span class="kw">val</span> cells = <span class="typ">IntArray</span>(width * height)
+
+    <span class="cmt">// grid[x, y] desugars to grid.get(x, y)</span>
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">get</span>(x: <span class="typ">Int</span>, y: <span class="typ">Int</span>) = cells[y * width + x]
+
+    <span class="cmt">// grid[x, y] = v desugars to grid.set(x, y, v)</span>
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">set</span>(x: <span class="typ">Int</span>, y: <span class="typ">Int</span>, value: <span class="typ">Int</span>) {
+        cells[y * width + x] = value
+    }
+}
+
+<span class="kw">val</span> grid = <span class="typ">Grid</span>(<span class="num">10</span>, <span class="num">10</span>)
+grid[<span class="num">2</span>, <span class="num">3</span>] = <span class="num">42</span>
+<span class="fn">println</span>(grid[<span class="num">2</span>, <span class="num">3</span>])  <span class="cmt">// 42</span>
+
+<span class="cmt">// invoke: makes an instance callable like a function, obj(args)</span>
+<span class="kw">class</span> <span class="typ">Greeter</span>(<span class="kw">val</span> greeting: <span class="typ">String</span>) {
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">invoke</span>(name: <span class="typ">String</span>) = <span class="str">"$greeting, $name!"</span>
+}
+<span class="kw">val</span> greeter = <span class="typ">Greeter</span>(<span class="str">"Hi"</span>)
+<span class="fn">println</span>(<span class="fn">greeter</span>(<span class="str">"Ada"</span>))  <span class="cmt">// "Hi, Ada!" — greeter("Ada") calls invoke</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Operator overloading is powerful and easy to abuse. Reserve it for types where the operator's mathematical or collection-like meaning is unambiguous — vectors, money, matrices, custom containers. Overloading <code>+</code> to mean something surprising (like triggering a network call) is the kind of thing that makes an interviewer's eyebrow go up.</div>
+      </div>
+    </section>
+
+    <!-- ── 9. LOCAL FUNCTIONS ───────────────────────────────────── -->
+    <section class="section" id="local-functions">
+      <div class="section-header">
+        <div class="section-icon icon-gold">📍</div>
+        <h2>Local Functions</h2>
+        <span class="section-tag">fun inside fun · closures over locals</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin allows a full <code>fun</code> declaration nested inside another function body, not just a lambda. A local function can access and mutate the variables of its enclosing function directly — it closes over them the same way a lambda would — but it reads and debugs like an ordinary named function, which is often clearer than an equivalently-scoped lambda assigned to a local <code>val</code>.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A named helper scoped to one function</span>
+          <span class="card-badge badge-gold">Local fun</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">validateOrder</span>(items: <span class="typ">List</span>&lt;<span class="typ">Double</span>&gt;, discount: <span class="typ">Double</span>): <span class="typ">Double</span> {
+    <span class="cmt">// Local function: only visible inside validateOrder,</span>
+    <span class="cmt">// and it can see `discount` from the enclosing scope directly</span>
+    <span class="kw">fun</span> <span class="fn">applyDiscount</span>(price: <span class="typ">Double</span>): <span class="typ">Double</span> {
+        <span class="fn">require</span>(price >= <span class="num">0</span>) { <span class="str">"price can't be negative"</span> }
+        <span class="kw">return</span> price * (<span class="num">1</span> - discount)
+    }
+
+    <span class="kw">return</span> items.<span class="fn">sumOf</span> { <span class="fn">applyDiscount</span>(it) }
+}
+
+<span class="fn">println</span>(<span class="fn">validateOrder</span>(<span class="fn">listOf</span>(<span class="num">10.0</span>, <span class="num">20.0</span>, <span class="num">30.0</span>), discount = <span class="num">0.1</span>))
+<span class="cmt">// 54.0</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">💡</span>
+        <div>Reach for a local function over a lambda-assigned-to-val when the helper needs a name that documents its purpose, calls itself recursively, or you simply find <code>fun helperName(...)</code> more readable than <code>val helperName = { ... }</code> with an inferred type. Both close over the same enclosing state; it's purely a readability choice.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Function type</td><td>(Int, Int) -&gt; Int</td><td>A real, first-class type</td></tr>
+          <tr><td>Lambda literal</td><td>{ a, b -&gt; a + b }</td><td>Always in braces; last expr is the return value</td></tr>
+          <tr><td>Implicit param</td><td>{ it * 2 }</td><td>Only for single-parameter lambdas</td></tr>
+          <tr><td>Trailing lambda</td><td>f(x) { ... }</td><td>Last function-type param moves outside ()</td></tr>
+          <tr><td>Lambda-only call</td><td>f { ... }</td><td>() dropped entirely when the lambda is the only arg</td></tr>
+          <tr><td>Function reference</td><td>::functionName</td><td>Points to a top-level function</td></tr>
+          <tr><td>Member reference</td><td>Type::method</td><td>Unbound; takes a receiver as its first param</td></tr>
+          <tr><td>Bound reference</td><td>instance::method</td><td>Fixed to one specific receiver instance</td></tr>
+          <tr><td>Constructor reference</td><td>::ClassName</td><td>Builds instances, usable in map/etc.</td></tr>
+          <tr><td>Inline function</td><td>inline fun f(block: () -&gt; Unit)</td><td>Body pasted at call site; enables non-local return</td></tr>
+          <tr><td>Opt out of inlining</td><td>noinline param</td><td>Needed to store or pass the lambda onward</td></tr>
+          <tr><td>Inline without non-local return</td><td>crossinline param</td><td>Needed when the lambda runs in another context</td></tr>
+          <tr><td>Extension function</td><td>fun T.name() { this... }</td><td>Resolved by declared (static) type, not runtime type</td></tr>
+          <tr><td>Infix call</td><td>a to b</td><td>Exactly one param, no default, no vararg</td></tr>
+          <tr><td>Operator overload</td><td>operator fun plus(o: T)</td><td>Enables a + b via a.plus(b)</td></tr>
+          <tr><td>Indexed access</td><td>operator fun get/set</td><td>Enables obj[i] and obj[i] = v</td></tr>
+          <tr><td>Callable instance</td><td>operator fun invoke(...)</td><td>Enables obj(args)</td></tr>
+          <tr><td>Local function</td><td>fun helper() { ... } inside fun</td><td>Closes over enclosing locals like a lambda would</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#higher-order">1: Higher-Order Functions</a></li>
+      <li><a href="#lambda-syntax">2: Lambda Syntax &amp; it</a></li>
+      <li><a href="#trailing-lambda">3: Trailing Lambda Syntax</a></li>
+      <li><a href="#function-references">4: Function References</a></li>
+      <li><a href="#inline">5: inline, noinline, crossinline</a></li>
+      <li><a href="#extensions">6: Extension Functions</a></li>
+      <li><a href="#infix">7: infix Functions</a></li>
+      <li><a href="#operator-overloading">8: Operator Overloading</a></li>
+      <li><a href="#local-functions">9: Local Functions</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

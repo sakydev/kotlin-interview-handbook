@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Classes &amp; Objects | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Classes <span>&amp; Objects</span></h1>
+  <p>Constructors, properties, data classes, sealed hierarchies, objects instead of static, and delegation.</p>
+  <div class="hero-pills">
+    <span>Constructors</span>
+    <span>Properties</span>
+    <span>data class</span>
+    <span>sealed</span>
+    <span>enum</span>
+    <span>object</span>
+    <span>by delegation</span>
+    <span>Visibility</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html" class="active"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. CONSTRUCTORS ──────────────────────────────────────── -->
+    <section class="section" id="constructors">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🏗</div>
+        <h2>Constructors</h2>
+        <span class="section-tag">primary · secondary · init</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Every Kotlin class has at most one primary constructor, declared right in the class header instead of as a separate method body. It's not a shorthand bolted on top of a "real" constructor — it's the main one, and its parameters can declare properties directly. Secondary constructors exist for cases the primary constructor can't express cleanly, but in idiomatic Kotlin they're the exception, not the default.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Primary constructor: parameters as properties</span>
+          <span class="card-badge badge-blue">Primary</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// val/var on a constructor parameter makes it a property automatically:</span>
+<span class="cmt">// no separate field declaration, no assignment boilerplate</span>
+<span class="kw">class</span> <span class="typ">User</span>(<span class="kw">val</span> name: <span class="typ">String</span>, <span class="kw">val</span> age: <span class="typ">Int</span>)
+
+<span class="kw">val</span> user = <span class="typ">User</span>(<span class="str">"Ada"</span>, <span class="num">36</span>)
+<span class="fn">println</span>(user.name) <span class="cmt">// Ada: name is a real, readable property</span>
+
+<span class="cmt">// Constructor parameters without val/var are just parameters:</span>
+<span class="cmt">// usable in init blocks, not exposed as properties</span>
+<span class="kw">class</span> <span class="typ">Circle</span>(radius: <span class="typ">Double</span>) {
+    <span class="kw">val</span> area = <span class="typ">Math</span>.<span class="typ">PI</span> * radius * radius
+    <span class="cmt">// "radius" itself isn't accessible outside the constructor</span>
+}
+
+<span class="cmt">// Default values work here too, same as any function</span>
+<span class="kw">class</span> <span class="typ">Connection</span>(<span class="kw">val</span> host: <span class="typ">String</span>, <span class="kw">val</span> port: <span class="typ">Int</span> = <span class="num">443</span>)</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">init blocks &amp; initialization order</span>
+          <span class="card-badge badge-blue">init</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// init blocks run as part of the primary constructor, in the order</span>
+<span class="cmt">// they're declared, interleaved with property initializers</span>
+<span class="kw">class</span> <span class="typ">Account</span>(<span class="kw">val</span> owner: <span class="typ">String</span>, initialBalance: <span class="typ">Int</span>) {
+    <span class="kw">val</span> balance: <span class="typ">Int</span>
+
+    <span class="kw">init</span> {
+        <span class="fn">require</span>(initialBalance >= <span class="num">0</span>) { <span class="str">"balance can't be negative"</span> }
+        balance = initialBalance
+        <span class="fn">println</span>(<span class="str">"Account created for $owner"</span>)
+    }
+
+    <span class="kw">init</span> {
+        <span class="fn">println</span>(<span class="str">"Second init block: still runs in declaration order"</span>)
+    }
+}
+<span class="cmt">// Account("Ada", -5) throws IllegalArgumentException immediately</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Secondary constructors</span>
+          <span class="card-badge badge-blue">Secondary</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Every secondary constructor must delegate to the primary,</span>
+<span class="cmt">// directly or through another secondary constructor, via this(...)</span>
+<span class="kw">class</span> <span class="typ">Point</span>(<span class="kw">val</span> x: <span class="typ">Int</span>, <span class="kw">val</span> y: <span class="typ">Int</span>) {
+    <span class="kw">constructor</span>() : <span class="kw">this</span>(<span class="num">0</span>, <span class="num">0</span>)                <span class="cmt">// origin</span>
+    <span class="kw">constructor</span>(both: <span class="typ">Int</span>) : <span class="kw">this</span>(both, both)  <span class="cmt">// on the diagonal</span>
+}
+
+<span class="typ">Point</span>()      <span class="cmt">// (0, 0)</span>
+<span class="typ">Point</span>(<span class="num">5</span>)     <span class="cmt">// (5, 5)</span>
+<span class="typ">Point</span>(<span class="num">1</span>, <span class="num">2</span>)  <span class="cmt">// (1, 2)</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for a secondary constructor only when Java interop or framework constraints demand it (some frameworks require a no-arg constructor to instantiate via reflection). For everything else, a default parameter value on the primary constructor does the same job with less code: <code>class Point(val x: Int = 0, val y: Int = 0)</code> replaces the whole example above.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has no constructors at all — you write a <code>NewPoint(x, y int) *Point</code> function by convention and hope every caller uses it instead of the zero-value struct literal. Kotlin's primary constructor is a real, enforced entry point: there's no way to construct a <code class="typ">User</code> that skips it.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. PROPERTIES & CUSTOM ACCESSORS ─────────────────────── -->
+    <section class="section" id="properties">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔧</div>
+        <h2>Properties &amp; Custom Accessors</h2>
+        <span class="section-tag">get() · set() · backing field</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin has no separate concept of "a field with a getter and setter bolted on" — every <code>val</code>/<code>var</code> declared as a class member is a property, and a property is really a pair of functions (a getter, and for <code>var</code>, a setter) with syntax that makes them look like plain field access. That means you can start with a simple stored property and later add validation or computed behavior in the accessor without changing a single call site.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Custom getters &amp; setters</span>
+          <span class="card-badge badge-green">get / set</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Rectangle</span>(<span class="kw">val</span> width: <span class="typ">Double</span>, <span class="kw">val</span> height: <span class="typ">Double</span>) {
+    <span class="cmt">// Computed property: no backing field, recalculated on every read</span>
+    <span class="kw">val</span> area: <span class="typ">Double</span>
+        <span class="kw">get</span>() = width * height
+}
+
+<span class="kw">class</span> <span class="typ">User</span>(name: <span class="typ">String</span>) {
+    <span class="cmt">// "field" refers to the auto-generated backing field;</span>
+    <span class="cmt">// without referencing it, there'd be no storage at all</span>
+    <span class="kw">var</span> name: <span class="typ">String</span> = name
+        <span class="kw">set</span>(value) {
+            <span class="fn">require</span>(value.<span class="fn">isNotBlank</span>()) { <span class="str">"name can't be blank"</span> }
+            field = value.<span class="fn">trim</span>()
+        }
+}
+
+<span class="kw">val</span> u = <span class="typ">User</span>(<span class="str">"  Ada  "</span>)
+<span class="fn">println</span>(u.name)     <span class="cmt">// "Ada": trimmed by the setter at construction time too</span>
+u.name = <span class="str">"Grace"</span>  <span class="cmt">// goes through the same validation</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>The <code>field</code> identifier is only valid inside a property accessor, and it only exists if at least one accessor references it (or you don't override the default). A property with a custom getter and no backing field reference — like <code>area</code> above — allocates no storage at all; it's purely a computed function that happens to be called with property syntax.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has no property syntax — a getter is just a method, <code>u.Name()</code>, and there's no way to intercept a plain field assignment like <code>u.name = "x"</code> at all (Go fields are always direct storage access when exported). Kotlin properties let you start with the equivalent of a Go field and evolve it into validated, computed behavior later, without breaking callers who still write <code>u.name = "x"</code>.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. DATA CLASSES ──────────────────────────────────────── -->
+    <section class="section" id="data-classes">
+      <div class="section-header">
+        <div class="section-icon icon-purple">📇</div>
+        <h2>Data Classes</h2>
+        <span class="section-tag">data class · equals · copy · destructuring</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code>data class</code> tells the compiler "this class's identity is defined entirely by its properties," and in exchange the compiler generates <code>equals()</code>, <code>hashCode()</code>, <code>toString()</code>, a <code>copy()</code> function, and destructuring support — the exact boilerplate that Java developers used to reach for Lombok or an IDE generator to avoid writing by hand. It's the right tool for plain data carriers: request/response DTOs, value objects, immutable records. It's the wrong tool for classes with real identity or behavior beyond their data.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">What data class generates</span>
+          <span class="card-badge badge-purple">data class</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Point</span>(<span class="kw">val</span> x: <span class="typ">Int</span>, <span class="kw">val</span> y: <span class="typ">Int</span>)
+
+<span class="kw">val</span> p1 = <span class="typ">Point</span>(<span class="num">1</span>, <span class="num">2</span>)
+<span class="kw">val</span> p2 = <span class="typ">Point</span>(<span class="num">1</span>, <span class="num">2</span>)
+
+<span class="fn">println</span>(p1 == p2)       <span class="cmt">// true: structural equality, not reference identity</span>
+<span class="fn">println</span>(p1 === p2)      <span class="cmt">// false: different instances</span>
+<span class="fn">println</span>(p1)             <span class="cmt">// Point(x=1, y=2): readable toString() for free</span>
+<span class="fn">println</span>(p1.<span class="fn">hashCode</span>() == p2.<span class="fn">hashCode</span>()) <span class="cmt">// true: consistent with equals</span></pre>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">copy(): change one field, keep the rest</span>
+            <span class="card-badge badge-purple">copy</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">User</span>(<span class="kw">val</span> name: <span class="typ">String</span>, <span class="kw">val</span> age: <span class="typ">Int</span>)
+
+<span class="kw">val</span> ada = <span class="typ">User</span>(<span class="str">"Ada"</span>, <span class="num">36</span>)
+
+<span class="cmt">// copy() creates a new instance, overriding only named fields</span>
+<span class="kw">val</span> olderAda = ada.<span class="fn">copy</span>(age = <span class="num">37</span>)
+<span class="fn">println</span>(olderAda) <span class="cmt">// User(name=Ada, age=37)</span>
+<span class="fn">println</span>(ada)      <span class="cmt">// User(name=Ada, age=36): original unchanged</span></pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Destructuring declarations</span>
+            <span class="card-badge badge-purple">Destructuring</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Point</span>(<span class="kw">val</span> x: <span class="typ">Int</span>, <span class="kw">val</span> y: <span class="typ">Int</span>)
+
+<span class="cmt">// Destructuring works because data classes generate</span>
+<span class="cmt">// component1(), component2(), ... automatically</span>
+<span class="kw">val</span> (x, y) = <span class="typ">Point</span>(<span class="num">3</span>, <span class="num">4</span>)
+<span class="fn">println</span>(<span class="str">"$x, $y"</span>) <span class="cmt">// 3, 4</span>
+
+<span class="cmt">// Common in loops over pairs/maps</span>
+<span class="kw">val</span> pairs = <span class="fn">listOf</span>(<span class="num">1</span> <span class="kw">to</span> <span class="str">"one"</span>, <span class="num">2</span> <span class="kw">to</span> <span class="str">"two"</span>)
+<span class="kw">for</span> ((num, word) <span class="kw">in</span> pairs) {
+    <span class="fn">println</span>(<span class="str">"$num = $word"</span>)
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div><code>copy()</code> is a shallow copy, and generated <code>equals()</code>/<code>hashCode()</code> only consider primary-constructor properties. A <code>var</code> property inside a data class is legal but dangerous: two instances can compare equal today and unequal tomorrow if a <code>var</code> field is mutated after construction, which silently breaks anything that hashed the object earlier (a <code>HashMap</code> key, a <code>HashSet</code> entry). Prefer <code>val</code> for every property on a data class.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. SEALED CLASSES & INTERFACES ───────────────────────── -->
+    <section class="section" id="sealed">
+      <div class="section-header">
+        <div class="section-icon icon-red">🔐</div>
+        <h2>Sealed Classes &amp; Interfaces</h2>
+        <span class="section-tag">sealed · exhaustive when · sum types</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code>sealed</code> class or interface restricts its subtypes to a fixed set known at compile time, all declared in the same module. This is Kotlin's answer to the "sum type" or "tagged union" pattern from functional languages — a value that is exactly one of a closed list of shapes, not an open-ended hierarchy anyone could extend. The payoff shows up at the point of use: an exhaustive <code>when</code> expression over a sealed type must cover every subtype, so adding a new one is a compile error everywhere it isn't yet handled, instead of a silent gap.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Modeling a closed set of outcomes</span>
+          <span class="card-badge badge-red">sealed class</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Every possible outcome is a subtype; no other subtype can exist</span>
+<span class="kw">sealed</span> <span class="kw">class</span> <span class="typ">NetworkResult</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Success</span>(<span class="kw">val</span> data: <span class="typ">String</span>) : <span class="typ">NetworkResult</span>()
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Failure</span>(<span class="kw">val</span> error: <span class="typ">Throwable</span>) : <span class="typ">NetworkResult</span>()
+<span class="kw">object</span> <span class="typ">Loading</span> : <span class="typ">NetworkResult</span>()
+
+<span class="kw">fun</span> <span class="fn">render</span>(result: <span class="typ">NetworkResult</span>): <span class="typ">String</span> = <span class="kw">when</span> (result) {
+    <span class="kw">is</span> <span class="typ">Success</span> -> <span class="str">"Data: ${result.data}"</span>   <span class="cmt">// smart-cast to Success</span>
+    <span class="kw">is</span> <span class="typ">Failure</span> -> <span class="str">"Error: ${result.error.message}"</span>
+    <span class="typ">Loading</span>    -> <span class="str">"Loading..."</span>
+    <span class="cmt">// no else needed — and none allowed to compensate for a missing case</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">sealed interface: the same idea, without a base implementation</span>
+          <span class="card-badge badge-red">sealed interface</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Useful when subtypes don't share a natural common base class,</span>
+<span class="cmt">// or a subtype already extends something else</span>
+<span class="kw">sealed</span> <span class="kw">interface</span> <span class="typ">UiState</span>
+<span class="kw">object</span> <span class="typ">Idle</span> : <span class="typ">UiState</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Ready</span>(<span class="kw">val</span> items: <span class="typ">List</span>&lt;<span class="typ">String</span>&gt;) : <span class="typ">UiState</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Error</span>(<span class="kw">val</span> message: <span class="typ">String</span>) : <span class="typ">UiState</span>, <span class="typ">Comparable</span>&lt;<span class="typ">Error</span>&gt; {
+    <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">compareTo</span>(other: <span class="typ">Error</span>) = message.<span class="fn">compareTo</span>(other.message)
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for <code>sealed</code> whenever you catch yourself modeling "one of these N specific things" with a string tag, an integer status code, or a boolean flag pair. The compiler-checked exhaustiveness is worth more than it looks: it means refactors that add a new case can't ship half-handled.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has no sum types. The idiomatic Go equivalent is an interface with a small, "known" set of implementations and a type switch — but nothing stops another package from adding a new implementation, and nothing forces the type switch to handle it. <code>sealed</code> plus exhaustive <code>when</code> gives you the compile-time guarantee Go's type switches can only get close to with discipline and code review.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. ENUMS ──────────────────────────────────────────────── -->
+    <section class="section" id="enums">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🎚</div>
+        <h2>Enums</h2>
+        <span class="section-tag">enum class · entries · behavior per constant</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">An <code>enum class</code> is a sealed class where every subtype is a named singleton instance, declared inline. Like sealed classes, they're exhaustively checkable in a <code>when</code> expression, but they go further: each constant can carry its own constructor arguments and even override behavior individually, which makes enums a natural fit whenever the "closed set of cases" also needs per-case data or logic.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Enum constants with constructor data</span>
+          <span class="card-badge badge-blue">enum class</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">enum</span> <span class="kw">class</span> <span class="typ">Planet</span>(<span class="kw">val</span> massKg: <span class="typ">Double</span>, <span class="kw">val</span> radiusM: <span class="typ">Double</span>) {
+    <span class="typ">MERCURY</span>(<span class="num">3.303e23</span>, <span class="num">2.4397e6</span>),
+    <span class="typ">EARTH</span>(<span class="num">5.976e24</span>, <span class="num">6.37814e6</span>);
+
+    <span class="cmt">// Regular member: available on every constant</span>
+    <span class="kw">fun</span> <span class="fn">surfaceGravity</span>(): <span class="typ">Double</span> {
+        <span class="kw">val</span> g = <span class="num">6.67300E-11</span>
+        <span class="kw">return</span> g * massKg / (radiusM * radiusM)
+    }
+}
+
+<span class="fn">println</span>(<span class="typ">Planet</span>.<span class="typ">EARTH</span>.<span class="fn">surfaceGravity</span>())
+
+<span class="cmt">// entries: a modern, allocation-free replacement for values()</span>
+<span class="kw">for</span> (planet <span class="kw">in</span> <span class="typ">Planet</span>.entries) {
+    <span class="fn">println</span>(<span class="str">"${planet.name}: ${planet.ordinal}"</span>)
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Per-constant overrides</span>
+          <span class="card-badge badge-blue">Behavior per constant</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Each constant can override an abstract member with its own body</span>
+<span class="kw">enum</span> <span class="kw">class</span> <span class="typ">Operation</span> {
+    <span class="typ">PLUS</span> {
+        <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">apply</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>) = a + b
+    },
+    <span class="typ">TIMES</span> {
+        <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">apply</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>) = a * b
+    };
+
+    <span class="kw">abstract</span> <span class="kw">fun</span> <span class="fn">apply</span>(a: <span class="typ">Int</span>, b: <span class="typ">Int</span>): <span class="typ">Int</span>
+}
+
+<span class="fn">println</span>(<span class="typ">Operation</span>.<span class="typ">PLUS</span>.<span class="fn">apply</span>(<span class="num">2</span>, <span class="num">3</span>))  <span class="cmt">// 5</span>
+<span class="fn">println</span>(<span class="typ">Operation</span>.<span class="typ">TIMES</span>.<span class="fn">apply</span>(<span class="num">2</span>, <span class="num">3</span>)) <span class="cmt">// 6</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Prefer <code>Planet.entries</code> over the older <code>Planet.values()</code> in Kotlin 1.9+. <code>entries</code> is a cached <code>List</code> computed once; <code>values()</code> allocates a fresh array on every single call, which adds up in hot code paths that enumerate constants repeatedly.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. OBJECT & COMPANION OBJECT ─────────────────────────── -->
+    <section class="section" id="objects">
+      <div class="section-header">
+        <div class="section-icon icon-green">🧿</div>
+        <h2>object &amp; Companion Objects</h2>
+        <span class="section-tag">object · companion object · no static</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin has no <code>static</code> keyword, because <code>static</code> members don't really belong to a class in an object-oriented sense — they belong to nobody, floating outside any instance. Kotlin's answer is to make that intent explicit: <code>object</code> declares a class with exactly one instance, created lazily and thread-safely the first time it's used. A <code>companion object</code> is the same mechanism scoped inside another class, giving you a home for members that logically belong to the type itself rather than to any particular instance — the closest equivalent to Java's <code>static</code> methods and fields.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">object: a singleton, declared directly</span>
+          <span class="card-badge badge-green">object</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Exactly one instance exists, created on first access</span>
+<span class="kw">object</span> <span class="typ">AppConfig</span> {
+    <span class="kw">var</span> environment: <span class="typ">String</span> = <span class="str">"production"</span>
+    <span class="kw">fun</span> <span class="fn">isDebug</span>() = environment == <span class="str">"debug"</span>
+}
+
+<span class="typ">AppConfig</span>.environment = <span class="str">"debug"</span>
+<span class="fn">println</span>(<span class="typ">AppConfig</span>.<span class="fn">isDebug</span>())  <span class="cmt">// true: same instance everywhere</span>
+
+<span class="cmt">// object can implement interfaces, useful for stateless implementations</span>
+<span class="kw">interface</span> <span class="typ">Logger</span> { <span class="kw">fun</span> <span class="fn">log</span>(msg: <span class="typ">String</span>) }
+<span class="kw">object</span> <span class="typ">ConsoleLogger</span> : <span class="typ">Logger</span> {
+    <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">log</span>(msg: <span class="typ">String</span>) = <span class="fn">println</span>(<span class="str">"[LOG] $msg"</span>)
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">companion object: static-like members on a class</span>
+          <span class="card-badge badge-green">companion object</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">User</span> <span class="kw">private</span> <span class="kw">constructor</span>(<span class="kw">val</span> name: <span class="typ">String</span>) {
+    <span class="kw">companion</span> <span class="kw">object</span> {
+        <span class="cmt">// A factory function, called on the type itself: User.create(...)</span>
+        <span class="kw">fun</span> <span class="fn">create</span>(rawName: <span class="typ">String</span>): <span class="typ">User</span>? {
+            <span class="kw">val</span> trimmed = rawName.<span class="fn">trim</span>()
+            <span class="kw">return</span> <span class="kw">if</span> (trimmed.<span class="fn">isBlank</span>()) <span class="kw">null</span> <span class="kw">else</span> <span class="typ">User</span>(trimmed)
+        }
+
+        <span class="kw">const</span> <span class="kw">val</span> MAX_NAME_LENGTH = <span class="num">100</span>  <span class="cmt">// compile-time constant</span>
+    }
+}
+
+<span class="kw">val</span> user = <span class="typ">User</span>.<span class="fn">create</span>(<span class="str">"  Ada  "</span>)
+<span class="fn">println</span>(<span class="typ">User</span>.MAX_NAME_LENGTH)  <span class="cmt">// 100</span>
+
+<span class="cmt">// A companion object is a real object with a name (default: Companion),</span>
+<span class="cmt">// and can implement interfaces, just like any object</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>A private primary constructor plus a companion object factory function is the idiomatic Kotlin way to enforce validated construction — the compiler won't let anyone call <code>User(...)</code> directly, only <code>User.create(...)</code>, which can return <code>null</code> or throw on invalid input. It's a lighter-weight alternative to a separate builder class.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go's package-level functions and vars already give you "belongs to the package, not an instance" — Kotlin's <code>companion object</code> is the same idea scoped to a single class instead of a whole file. The `object` singleton pattern replaces the common Go idiom of a package-level <code>var globalInstance = &Thing{}</code> guarded by a <code>sync.Once</code>, except Kotlin's compiler and runtime handle the thread-safe lazy init for you.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. INTERFACE DELEGATION ──────────────────────────────── -->
+    <section class="section" id="delegation">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🤝</div>
+        <h2>Interface Delegation: by</h2>
+        <span class="section-tag">by · composition over inheritance</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Implementing an interface usually means writing every one of its methods yourself, even when a member object already implements it perfectly and you just want to forward calls. The <code>by</code> keyword generates that forwarding boilerplate for you: the class declares that it implements the interface "by" delegating to an existing instance, and the compiler writes every method as a one-line call to that instance. It's composition dressed up with the ergonomics of inheritance.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Delegating an interface to a held instance</span>
+          <span class="card-badge badge-purple">by</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">interface</span> <span class="typ">SoundSource</span> {
+    <span class="kw">fun</span> <span class="fn">play</span>(): <span class="typ">String</span>
+}
+
+<span class="kw">class</span> <span class="typ">Speaker</span> : <span class="typ">SoundSource</span> {
+    <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">play</span>() = <span class="str">"playing through speaker"</span>
+}
+
+<span class="cmt">// MediaPlayer implements SoundSource entirely by forwarding to `source`.</span>
+<span class="cmt">// No play() body needed here unless you want to override it.</span>
+<span class="kw">class</span> <span class="typ">MediaPlayer</span>(source: <span class="typ">SoundSource</span>) : <span class="typ">SoundSource</span> <span class="kw">by</span> source
+
+<span class="kw">val</span> player = <span class="typ">MediaPlayer</span>(<span class="typ">Speaker</span>())
+<span class="fn">println</span>(player.<span class="fn">play</span>()) <span class="cmt">// "playing through speaker"</span>
+
+<span class="cmt">// You can still override individual members selectively</span>
+<span class="kw">class</span> <span class="typ">LoudPlayer</span>(source: <span class="typ">SoundSource</span>) : <span class="typ">SoundSource</span> <span class="kw">by</span> source {
+    <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">play</span>() = <span class="str">"${source.play()} at max volume"</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Delegation is Kotlin's answer to the classic "favor composition over inheritance" advice: you get the caller-facing convenience of subclassing an implementation without the fragile-base-class problems that come from actually extending a concrete class. It's especially common when wrapping a third-party implementation to add or intercept a handful of methods, like the <code>LoudPlayer</code> example.</div>
+      </div>
+    </section>
+
+    <!-- ── 8. VISIBILITY MODIFIERS ──────────────────────────────── -->
+    <section class="section" id="visibility">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🔎</div>
+        <h2>Visibility Modifiers</h2>
+        <span class="section-tag">public · private · protected · internal</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin adds a fourth visibility level beyond Java's three. <code>public</code> is the default — unlike Java, where leaving off a modifier means package-private. <code>internal</code> is new: visible anywhere in the same module (a Gradle module or IntelliJ module boundary), which gives you a visibility level between "this file" and "the whole world" that Java has no direct equivalent for.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">The four levels</span>
+          <span class="card-badge badge-gold">Visibility</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">BankAccount</span>(<span class="kw">private</span> <span class="kw">val</span> pin: <span class="typ">String</span>) {
+
+    <span class="kw">public</span> <span class="kw">val</span> accountId: <span class="typ">String</span> = <span class="fn">generateId</span>()
+    <span class="cmt">// public is the default: "public val accountId" and "val accountId"</span>
+    <span class="cmt">// mean exactly the same thing</span>
+
+    <span class="kw">private</span> <span class="kw">var</span> balance: <span class="typ">Int</span> = <span class="num">0</span>
+    <span class="cmt">// visible only inside this class</span>
+
+    <span class="kw">protected</span> <span class="kw">open</span> <span class="kw">fun</span> <span class="fn">auditLog</span>(): <span class="typ">String</span> = <span class="str">"account $accountId"</span>
+    <span class="cmt">// visible in this class and subclasses only</span>
+
+    <span class="kw">internal</span> <span class="kw">fun</span> <span class="fn">rawBalance</span>() = balance
+    <span class="cmt">// visible anywhere in the same module, not to external consumers</span>
+    <span class="cmt">// of a published library — Java has no equivalent to this level</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>At the top level of a file (functions and properties not inside any class), <code>protected</code> isn't legal — there's no subclass relationship to scope it to. <code>private</code> at file scope means "visible only within this file," which is a handy way to hide helper functions from the rest of the module without wrapping them in a class.</div>
+      </div>
+    </section>
+
+    <!-- ── 9. NESTED VS INNER CLASSES ────────────────────────────── -->
+    <section class="section" id="nested-inner">
+      <div class="section-header">
+        <div class="section-icon icon-red">📐</div>
+        <h2>Nested vs Inner Classes</h2>
+        <span class="section-tag">nested (default) · inner · outer reference</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A class declared inside another class is, by default, a plain <strong>nested</strong> class with no connection to any specific outer instance — it's just namespaced inside the outer class, like Java's <code>static</code> nested classes. Marking it <code>inner</code> changes that: an inner class holds an implicit reference to the outer instance that created it, and can access the outer instance's members directly. This is the reverse of Java's default, where a non-static inner class is the common case and you opt out with <code>static</code>.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Default nested: no outer instance link</span>
+          <span class="card-badge badge-red">Nested</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Outer</span>(<span class="kw">val</span> name: <span class="typ">String</span>) {
+    <span class="cmt">// Nested class: cannot see Outer's members, needs no Outer instance</span>
+    <span class="kw">class</span> <span class="typ">Nested</span> {
+        <span class="kw">fun</span> <span class="fn">greet</span>() = <span class="str">"hello from a nested class"</span>
+    }
+}
+
+<span class="cmt">// Constructed without any Outer instance</span>
+<span class="kw">val</span> n = <span class="typ">Outer</span>.<span class="typ">Nested</span>()
+<span class="fn">println</span>(n.<span class="fn">greet</span>())</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">inner: holds a reference to its outer instance</span>
+          <span class="card-badge badge-red">inner</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Outer</span>(<span class="kw">val</span> name: <span class="typ">String</span>) {
+    <span class="kw">inner</span> <span class="kw">class</span> <span class="typ">Inner</span> {
+        <span class="cmt">// Can reach Outer's members directly, because this Inner</span>
+        <span class="cmt">// instance is tied to the Outer instance that created it</span>
+        <span class="kw">fun</span> <span class="fn">describe</span>() = <span class="str">"inner class of $name"</span>
+
+        <span class="cmt">// this@Outer disambiguates when both classes share a member name</span>
+        <span class="kw">fun</span> <span class="fn">outerName</span>() = <span class="kw">this</span>@Outer.name
+    }
+}
+
+<span class="cmt">// Must be constructed through an Outer instance</span>
+<span class="kw">val</span> outer = <span class="typ">Outer</span>(<span class="str">"config"</span>)
+<span class="kw">val</span> inner = outer.<span class="typ">Inner</span>()
+<span class="fn">println</span>(inner.<span class="fn">describe</span>()) <span class="cmt">// "inner class of config"</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Every <code>inner</code> instance keeps its outer instance alive through that implicit reference, which is a real memory-leak risk if the inner instance outlives the outer one's intended lifetime (a classic Android example: an inner class used as a long-lived callback, holding an <code>Activity</code> in memory after it should have been garbage collected). Default to a plain nested class unless you specifically need the outer instance's state or behavior.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has no nested types at all — a type declared inside a function is a local type with no name visible outside it, and there's no notion of one struct being scoped inside another's namespace. Kotlin's default nested class is the closer analogue to "just group related types together," while <code>inner</code> is closer to a closure that captures a receiver.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Primary constructor property</td><td>class User(val name: String)</td><td>val/var on a param generates a property</td></tr>
+          <tr><td>init block</td><td>init { ... }</td><td>Runs in declaration order with property initializers</td></tr>
+          <tr><td>Secondary constructor</td><td>constructor(x: T) : this(...)</td><td>Must delegate to the primary constructor</td></tr>
+          <tr><td>Custom getter</td><td>val x: T get() = ...</td><td>No backing field unless referenced via `field`</td></tr>
+          <tr><td>Custom setter</td><td>var x: T set(v) { field = v }</td><td>`field` is the backing storage</td></tr>
+          <tr><td>Data class</td><td>data class P(val x: Int)</td><td>Generates equals/hashCode/toString/copy/componentN</td></tr>
+          <tr><td>Copy with change</td><td>obj.copy(field = newVal)</td><td>Shallow copy, unspecified fields unchanged</td></tr>
+          <tr><td>Destructuring</td><td>val (a, b) = pair</td><td>Needs componentN() functions</td></tr>
+          <tr><td>Sealed class</td><td>sealed class R</td><td>All subtypes known at compile time, same module</td></tr>
+          <tr><td>Enum with data</td><td>enum class E(val x: Int) { A(1) }</td><td>Each constant is a singleton instance</td></tr>
+          <tr><td>Modern enum iteration</td><td>E.entries</td><td>Cached List; prefer over values()</td></tr>
+          <tr><td>Singleton</td><td>object Foo { ... }</td><td>Lazily created, thread-safe, exactly one instance</td></tr>
+          <tr><td>Static-like members</td><td>companion object { ... }</td><td>Scoped to the enclosing class</td></tr>
+          <tr><td>Interface delegation</td><td>class C(x: I) : I by x</td><td>Compiler forwards every member to x</td></tr>
+          <tr><td>Module-wide visibility</td><td>internal</td><td>Visible in the module, not to external consumers</td></tr>
+          <tr><td>Nested class (default)</td><td>class Outer { class Nested }</td><td>No implicit outer instance reference</td></tr>
+          <tr><td>Inner class</td><td>class Outer { inner class Inner }</td><td>Holds a reference to its creating Outer instance</td></tr>
+          <tr><td>Qualified this</td><td>this@Outer</td><td>Disambiguates outer vs inner receiver</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#constructors">1: Constructors</a></li>
+      <li><a href="#properties">2: Properties &amp; Custom Accessors</a></li>
+      <li><a href="#data-classes">3: Data Classes</a></li>
+      <li><a href="#sealed">4: Sealed Classes &amp; Interfaces</a></li>
+      <li><a href="#enums">5: Enums</a></li>
+      <li><a href="#objects">6: object &amp; Companion Objects</a></li>
+      <li><a href="#delegation">7: Interface Delegation: by</a></li>
+      <li><a href="#visibility">8: Visibility Modifiers</a></li>
+      <li><a href="#nested-inner">9: Nested vs Inner Classes</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
