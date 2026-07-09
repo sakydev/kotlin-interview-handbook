@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Null Safety | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Null <span>Safety</span></h1>
+  <p>The type system tells you where null can happen, so a whole category of runtime crashes becomes a compile error instead.</p>
+  <div class="hero-pills">
+    <span>?.</span>
+    <span>?:</span>
+    <span>!!</span>
+    <span>as?</span>
+    <span>Smart casts</span>
+    <span>lateinit</span>
+    <span>lazy</span>
+    <span>Platform types</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html" class="active"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. THE NULLABLE TYPE SPLIT ───────────────────────────── -->
+    <section class="section" id="nullable-types">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🚫</div>
+        <h2>The Nullable Type Split</h2>
+        <span class="section-tag">String vs String? · billion-dollar mistake</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Tony Hoare called the null reference his "billion-dollar mistake": a value that type-checks as any object but can, at runtime, be nothing. Kotlin's answer isn't to remove null — it still exists, because the JVM and every Java library underneath you traffics in it — but to make nullability part of the type itself. <code class="typ">String</code> and <code class="typ">String?</code> are different types. The compiler tracks which one you have at every point in the program, and it refuses to compile code that dereferences a <code class="typ">String?</code> without first proving it isn't null.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Non-null by default, nullable is opt-in</span>
+          <span class="card-badge badge-blue">Type · Type?</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// A plain type can never hold null: the compiler guarantees it</span>
+<span class="kw">val</span> name: <span class="typ">String</span> = <span class="str">"Ada"</span>
+<span class="cmt">// name = null              // ERROR: null can't be a value of a non-null type</span>
+
+<span class="cmt">// Append ? to allow null: now the compiler forces you to handle it</span>
+<span class="kw">val</span> middleName: <span class="typ">String</span>? = <span class="kw">null</span>
+<span class="fn">println</span>(middleName.<span class="fn">length</span>) <span class="cmt">// ERROR: middleName might be null</span>
+
+<span class="cmt">// You must prove non-null before calling a member on a nullable type</span>
+<span class="kw">if</span> (middleName != <span class="kw">null</span>) {
+    <span class="fn">println</span>(middleName.<span class="fn">length</span>) <span class="cmt">// fine: compiler knows it's not null here</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>This is a compile-time guarantee, not a runtime check inserted everywhere. A <code class="typ">String</code> parameter genuinely cannot be null when your Kotlin code calls it — the compiler rejects any call site that would pass one. Runtime NPEs still happen at the seams: unchecked Java interop, <code>!!</code>, or explicit throws. Those seams are exactly what the rest of this page is about.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go sidesteps this with zero values — a nil <code>*User</code> pointer and a valid one have the same type, so the compiler can't stop you from dereferencing a nil one. Kotlin's <code class="typ">String?</code> vs <code class="typ">String</code> distinction is closer to what you'd get from a hypothetical Go where every pointer type came in a "might be nil" and "definitely not nil" flavor, checked at compile time.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. SAFE CALL ─────────────────────────────────────────── -->
+    <section class="section" id="safe-call">
+      <div class="section-header">
+        <div class="section-icon icon-green">❓</div>
+        <h2>Safe Call: ?.</h2>
+        <span class="section-tag">?. · chaining · let</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">The safe call operator <code>?.</code> calls a member only if the receiver isn't null; if it is, the whole expression short-circuits to <code>null</code> instead of throwing. It's the workhorse of null handling — most nullable values in real code get read through a chain of <code>?.</code> rather than an explicit <code>if</code> check, because the result composes: a safe call on a safe call just propagates <code>null</code> further down the chain.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Basic safe calls</span>
+          <span class="card-badge badge-green">?.</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> name: <span class="typ">String</span>? = <span class="kw">null</span>
+
+<span class="cmt">// ?. evaluates to null instead of throwing when the receiver is null</span>
+<span class="kw">val</span> length: <span class="typ">Int</span>? = name?.<span class="fn">length</span>
+<span class="fn">println</span>(length) <span class="cmt">// null</span>
+
+<span class="kw">val</span> name2: <span class="typ">String</span>? = <span class="str">"Ada"</span>
+<span class="fn">println</span>(name2?.<span class="fn">length</span>) <span class="cmt">// 3</span>
+
+<span class="cmt">// The result of a safe call is itself nullable, even if the</span>
+<span class="cmt">// member being called returns a non-null type</span>
+<span class="kw">val</span> upper: <span class="typ">String</span>? = name?.<span class="fn">uppercase</span>()</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Chaining through nested nullables</span>
+          <span class="card-badge badge-green">Chaining</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">Address</span>(<span class="kw">val</span> city: <span class="typ">String</span>?)
+<span class="kw">class</span> <span class="typ">User</span>(<span class="kw">val</span> address: <span class="typ">Address</span>?)
+
+<span class="kw">val</span> user: <span class="typ">User</span>? = <span class="typ">User</span>(<span class="typ">Address</span>(<span class="str">"Berlin"</span>))
+
+<span class="cmt">// Chain as many ?. as needed: null anywhere in the chain</span>
+<span class="cmt">// short-circuits the whole expression to null</span>
+<span class="kw">val</span> city: <span class="typ">String</span>? = user?.address?.city
+<span class="fn">println</span>(city) <span class="cmt">// Berlin</span>
+
+<span class="kw">val</span> missing: <span class="typ">User</span>? = <span class="kw">null</span>
+<span class="fn">println</span>(missing?.address?.city) <span class="cmt">// null, no exception</span>
+
+<span class="cmt">// ?.let { } runs the block only when the receiver is non-null,</span>
+<span class="cmt">// and gives you a smart-cast non-null value inside it</span>
+city?.<span class="fn">let</span> { c -> <span class="fn">println</span>(<span class="str">"Lives in $c"</span>) }</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Prefer chained <code>?.</code> over nested <code>if (x != null) { if (x.y != null) { ... } }</code>. It reads as "follow this path if everything along it exists," which matches how you think about the data, and it avoids the pyramid of nested null checks Java code tends to accumulate.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. ELVIS OPERATOR ────────────────────────────────────── -->
+    <section class="section" id="elvis">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🎸</div>
+        <h2>Elvis Operator: ?:</h2>
+        <span class="section-tag">?: · default · early return</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Rotate <code>:-)</code> ninety degrees and you can just about see why <code>?:</code> is called the Elvis operator. It supplies a fallback value when the expression on its left is <code>null</code>, and it's the natural partner to <code>?.</code>: a safe-call chain gets you a nullable result, and Elvis turns that into a concrete value with a default, a thrown exception, or an early return.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Default values</span>
+          <span class="card-badge badge-purple">?:</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> name: <span class="typ">String</span>? = <span class="kw">null</span>
+
+<span class="cmt">// If the left side is null, use the right side instead</span>
+<span class="kw">val</span> display = name ?: <span class="str">"Anonymous"</span>
+<span class="fn">println</span>(display) <span class="cmt">// Anonymous</span>
+
+<span class="cmt">// Chains naturally after a safe call</span>
+<span class="kw">val</span> length = name?.<span class="fn">length</span> ?: <span class="num">0</span>
+<span class="fn">println</span>(length) <span class="cmt">// 0</span>
+
+<span class="cmt">// Right side is evaluated lazily: only runs if needed</span>
+<span class="kw">fun</span> <span class="fn">expensiveDefault</span>(): <span class="typ">String</span> {
+    <span class="fn">println</span>(<span class="str">"computing default..."</span>)
+    <span class="kw">return</span> <span class="str">"fallback"</span>
+}
+<span class="kw">val</span> value = <span class="str">"present"</span> ?: <span class="fn">expensiveDefault</span>()
+<span class="cmt">// "computing default..." never prints: left side wasn't null</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">return / throw as the Elvis fallback</span>
+          <span class="card-badge badge-purple">return / throw</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// return and throw are expressions of type Nothing, so they're</span>
+<span class="cmt">// legal on the right of ?: — this is the idiomatic guard clause</span>
+<span class="kw">fun</span> <span class="fn">greet</span>(name: <span class="typ">String</span>?) {
+    <span class="kw">val</span> safeName = name ?: <span class="kw">return</span>  <span class="cmt">// bail out of the function early</span>
+    <span class="fn">println</span>(<span class="str">"Hello, $safeName"</span>)
+}
+
+<span class="kw">fun</span> <span class="fn">requireName</span>(name: <span class="typ">String</span>?): <span class="typ">String</span> {
+    <span class="kw">return</span> name ?: <span class="kw">throw</span> <span class="typ">IllegalArgumentException</span>(<span class="str">"name is required"</span>)
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> <code>x ?: default</code> is the direct answer to Go's <code>if x == nil { x = default }</code>, and <code>name ?: return</code> is the same shape as Go's <code>if err != nil { return }</code> guard clause — just spelled as an expression instead of a statement.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. NOT-NULL ASSERTION ────────────────────────────────── -->
+    <section class="section" id="not-null-assertion">
+      <div class="section-header">
+        <div class="section-icon icon-red">❗</div>
+        <h2>Not-Null Assertion: !!</h2>
+        <span class="section-tag">!! · NullPointerException · code smell</span>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div><code>!!</code> converts a nullable type to its non-null counterpart by asserting, at runtime, that the value isn't null. If you're wrong, it throws a <code>NullPointerException</code> — the exact exception Kotlin's type system exists to prevent. Every <code>!!</code> in a codebase is a place where the compiler's guarantee has been manually switched off.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">What !! does</span>
+          <span class="card-badge badge-red">!!</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> name: <span class="typ">String</span>? = <span class="fn">getNameFromCache</span>()
+
+<span class="cmt">// !! says "trust me, this isn't null" — converts String? to String</span>
+<span class="kw">val</span> length: <span class="typ">Int</span> = name!!.<span class="fn">length</span>
+
+<span class="cmt">// If getNameFromCache() actually returned null, this throws:</span>
+<span class="cmt">// java.lang.NullPointerException</span>
+<span class="cmt">//     at MainKt.main(main.kt:4)</span>
+<span class="cmt">// The stack trace points at the !!, at least, unlike Java's NPEs</span>
+<span class="cmt">// which often point at unrelated code that merely used the value.</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">When it's defensible</span>
+          <span class="card-badge badge-red">Narrow uses</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Defensible: you have external knowledge the compiler can't see,</span>
+<span class="cmt">// and a violation genuinely means a programmer error, not bad input</span>
+<span class="kw">class</span> <span class="typ">ViewHolder</span> {
+    <span class="kw">private</span> <span class="kw">var</span> _binding: <span class="typ">Binding</span>? = <span class="kw">null</span>
+    <span class="cmt">// Non-null only between onCreateView and onDestroyView;</span>
+    <span class="cmt">// asserting here documents that lifecycle invariant</span>
+    <span class="kw">val</span> binding get() = _binding!!
+}
+
+<span class="cmt">// Not defensible: input you don't control</span>
+<span class="kw">fun</span> <span class="fn">handleRequest</span>(body: <span class="typ">String</span>?) {
+    <span class="kw">val</span> parsed = body!!.<span class="fn">trim</span>()  <span class="cmt">// a malformed request now crashes the process</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Treat <code>!!</code> as a signal to stop and ask "what should actually happen if this is null?" Usually the honest answer is one of: a default via <code>?:</code>, an early return, or a thrown exception with a message that explains <em>why</em> null was unexpected — not a bare NPE with no context. Interviewers flag unexplained <code>!!</code> in review exercises for exactly this reason.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. SAFE CASTS ────────────────────────────────────────── -->
+    <section class="section" id="safe-casts">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🎭</div>
+        <h2>Safe Casts: as?</h2>
+        <span class="section-tag">as · as? · ClassCastException</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Casting has the same unsafe/safe split as null handling. <code>as</code> casts or throws <code>ClassCastException</code> on a mismatch; <code>as?</code> casts or produces <code>null</code>. Since the result of <code>as?</code> is nullable, it composes with everything else on this page — chain it into an Elvis operator for a default, or a safe call to keep going only on success.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">as vs as?</span>
+          <span class="card-badge badge-gold">Casts</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> obj: <span class="typ">Any</span> = <span class="str">"hello"</span>
+
+<span class="cmt">// as: throws ClassCastException on mismatch</span>
+<span class="kw">val</span> s1: <span class="typ">String</span> = obj <span class="kw">as</span> <span class="typ">String</span>       <span class="cmt">// ok</span>
+<span class="cmt">// val n = obj as Int              // throws ClassCastException</span>
+
+<span class="cmt">// as?: null on mismatch, never throws</span>
+<span class="kw">val</span> n: <span class="typ">Int</span>? = obj <span class="kw">as</span>? <span class="typ">Int</span>          <span class="cmt">// null, no exception</span>
+
+<span class="cmt">// Combine with ?: for a one-line "cast or default"</span>
+<span class="kw">val</span> asInt: <span class="typ">Int</span> = (obj <span class="kw">as</span>? <span class="typ">Int</span>) ?: <span class="num">0</span>
+<span class="fn">println</span>(asInt) <span class="cmt">// 0</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Casting to a non-null type with <code>as?</code> against a nullable receiver still returns null on mismatch, but casting <em>to</em> a nullable type — <code>obj as? String?</code> — also accepts a null receiver. This edge case rarely matters in practice, but it explains behavior that otherwise looks inconsistent.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. SMART CASTS ───────────────────────────────────────── -->
+    <section class="section" id="smart-casts">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🧠</div>
+        <h2>Smart Casts</h2>
+        <span class="section-tag">is · != null · flow-sensitive</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A smart cast is the compiler noticing that you've already proven something about a value's type or nullability, and letting you use that value as the narrower type without an explicit cast. It's flow analysis, not magic: the compiler tracks conditions like <code>x != null</code> or <code>x is String</code> along each code path and only applies the narrower type where the check is guaranteed to still hold.</p>
+
+      <div class="diagram">
+<pre>  val x: String? = getValue()
+
+  if (x != null) {
+      // compiler knows: x is String here
+      println(x.length)     ← no ?. needed, no !! needed
+  }
+  // outside the if: x is back to String?
+
+  Smart casts require x to be a val, or a var the compiler can
+  prove nothing else could have modified between the check and use.</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Smart cast from a null check</span>
+          <span class="card-badge badge-blue">!= null</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">describe</span>(x: <span class="typ">String</span>?) {
+    <span class="kw">if</span> (x != <span class="kw">null</span>) {
+        <span class="cmt">// x is smart-cast to String inside this block</span>
+        <span class="fn">println</span>(x.<span class="fn">length</span>)   <span class="cmt">// no ?. needed</span>
+    }
+
+    <span class="cmt">// Works with early-return guards too</span>
+    <span class="kw">if</span> (x == <span class="kw">null</span>) <span class="kw">return</span>
+    <span class="fn">println</span>(x.<span class="fn">uppercase</span>())  <span class="cmt">// x is String from here on</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Smart cast from an is check</span>
+          <span class="card-badge badge-blue">is</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">length</span>(x: <span class="typ">Any</span>): <span class="typ">Int</span> {
+    <span class="kw">if</span> (x <span class="kw">is</span> <span class="typ">String</span>) {
+        <span class="cmt">// x is smart-cast to String: .length is directly available</span>
+        <span class="kw">return</span> x.<span class="fn">length</span>
+    }
+    <span class="kw">return</span> <span class="num">0</span>
+}
+
+<span class="cmt">// Also works with && short-circuiting left to right</span>
+<span class="kw">fun</span> <span class="fn">printIfLong</span>(x: <span class="typ">Any</span>?) {
+    <span class="kw">if</span> (x <span class="kw">is</span> <span class="typ">String</span> && x.<span class="fn">length</span> > <span class="num">10</span>) {
+        <span class="fn">println</span>(x)
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Smart casts don't work on a <code>var</code> declared outside the current scope (a class property, for instance), because the compiler can't rule out another thread or a called function mutating it between the check and the use. Copy it to a local <code>val</code> first — <code>val local = someVarProperty; if (local != null) { ... local.length ... }</code> — to get the smart cast back.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. LATEINIT VS LAZY ──────────────────────────────────── -->
+    <section class="section" id="lateinit-lazy">
+      <div class="section-header">
+        <div class="section-icon icon-green">⏳</div>
+        <h2>lateinit vs lazy</h2>
+        <span class="section-tag">lateinit var · by lazy · deferred init</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Both let you declare a non-null property without an initializer up front, but they solve different problems. <code>lateinit</code> is for a <code>var</code> that some external framework or setup phase will assign later — dependency injection, Android's view binding, test <code>@BeforeEach</code> methods. <code>lazy</code> is for a <code>val</code> whose value is computed on first access and then cached — an expensive computation you want deferred until it's actually needed, if ever.</p>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">lateinit: assigned later, by you</span>
+            <span class="card-badge badge-green">lateinit</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">UserService</span> {
+    <span class="cmt">// No initializer needed at declaration; you promise</span>
+    <span class="cmt">// to assign it before first use</span>
+    <span class="kw">lateinit</span> <span class="kw">var</span> repository: <span class="typ">UserRepository</span>
+
+    <span class="kw">fun</span> <span class="fn">init</span>(repo: <span class="typ">UserRepository</span>) {
+        repository = repo
+    }
+
+    <span class="kw">fun</span> <span class="fn">findUser</span>(id: <span class="typ">Int</span>) = repository.<span class="fn">find</span>(id)
+}
+
+<span class="cmt">// Reading before assignment throws:</span>
+<span class="cmt">// UninitializedPropertyAccessException</span>
+
+<span class="cmt">// Check assignment state without triggering the exception</span>
+<span class="kw">val</span> service = <span class="typ">UserService</span>()
+<span class="kw">if</span> (service::repository.<span class="fn">isInitialized</span>) { <span class="cmt">/* ... */</span> }</pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">lazy: computed once, on first access</span>
+            <span class="card-badge badge-green">by lazy</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">ReportGenerator</span> {
+    <span class="cmt">// The block runs once, on first read of `summary`.</span>
+    <span class="cmt">// Every later read returns the cached result.</span>
+    <span class="kw">val</span> summary: <span class="typ">String</span> <span class="kw">by</span> <span class="fn">lazy</span> {
+        <span class="fn">println</span>(<span class="str">"computing summary..."</span>)
+        <span class="fn">expensiveComputation</span>()
+    }
+}
+
+<span class="kw">val</span> report = <span class="typ">ReportGenerator</span>()
+<span class="fn">println</span>(<span class="str">"created"</span>)
+<span class="fn">println</span>(report.summary) <span class="cmt">// "computing summary..." then the result</span>
+<span class="fn">println</span>(report.summary) <span class="cmt">// result again, no recomputation</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div><code>lateinit</code> only works on a <code>var</code> of a non-null reference type — not <code class="typ">Int</code>, <code class="typ">Boolean</code>, or other primitives, since it works by leaving the backing field temporarily uninitialized, which primitives on the JVM can't represent. <code>lazy</code> works on any <code>val</code> and is thread-safe by default (<code>LazyThreadSafetyMode.SYNCHRONIZED</code>); pass <code>LazyThreadSafetyMode.NONE</code> if you know access is single-threaded and want to skip the lock.</div>
+      </div>
+    </section>
+
+    <!-- ── 8. PLATFORM TYPES ────────────────────────────────────── -->
+    <section class="section" id="platform-types">
+      <div class="section-header">
+        <div class="section-icon icon-purple">☕</div>
+        <h2>Platform Types</h2>
+        <span class="section-tag">Type! · Java interop · unchecked</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Java has no nullability in its type system, so when Kotlin calls Java code, it has no compile-time information about whether a returned reference can be null. Rather than guessing wrong in either direction, Kotlin marks these as <strong>platform types</strong> — written <code>String!</code> in error messages and IDE tooltips, though you can't write that syntax yourself. A platform type can be treated as either <code class="typ">String</code> or <code class="typ">String?</code>; the compiler defers the null-safety check to you.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Calling unannotated Java</span>
+          <span class="card-badge badge-purple">Platform type</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Java method: public String getName() { ... }  (no annotation)</span>
+<span class="cmt">// Kotlin sees its return type as String! — a platform type</span>
+
+<span class="kw">val</span> name = javaObject.<span class="fn">getName</span>()   <span class="cmt">// inferred as String, not String?</span>
+<span class="fn">println</span>(name.<span class="fn">length</span>)          <span class="cmt">// compiles fine — but crashes at runtime</span>
+                                <span class="cmt">// if getName() actually returns null</span>
+
+<span class="cmt">// Safer: assign to an explicitly nullable type</span>
+<span class="kw">val</span> safeName: <span class="typ">String</span>? = javaObject.<span class="fn">getName</span>()
+<span class="fn">println</span>(safeName?.<span class="fn">length</span> ?: <span class="num">0</span>)</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Annotated Java is fully checked</span>
+          <span class="card-badge badge-purple">@Nullable</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Java method with JSR-305 / JetBrains annotations:</span>
+<span class="cmt">// public @Nullable String getMiddleName() { ... }</span>
+<span class="cmt">// public @NotNull String getFirstName() { ... }</span>
+
+<span class="cmt">// Kotlin respects the annotations directly: no platform type,</span>
+<span class="cmt">// full compile-time null checking as if it were Kotlin code</span>
+<span class="kw">val</span> middle: <span class="typ">String</span>? = javaObject.<span class="fn">getMiddleName</span>()  <span class="cmt">// String?</span>
+<span class="kw">val</span> first: <span class="typ">String</span> = javaObject.<span class="fn">getFirstName</span>()      <span class="cmt">// String</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Platform types are the most common source of NPEs in real Kotlin codebases, because the compiler stays silent — the crash only shows up at the call site where you eventually dereference the value, often far from where the Java call happened. When you're not sure a Java API is annotated, treat its return as nullable until proven otherwise. See <a href="java-interop.html">Java Interop</a> for the full picture, including how to annotate your own Java code so Kotlin callers get proper checking.</div>
+      </div>
+    </section>
+
+    <!-- ── 9. NULLABLE COLLECTIONS ──────────────────────────────── -->
+    <section class="section" id="nullable-collections">
+      <div class="section-header">
+        <div class="section-icon icon-red">📚</div>
+        <h2>Nullable Collections</h2>
+        <span class="section-tag">List&lt;T&gt;? vs List&lt;T?&gt; · filterNotNull</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Nullability on a collection type and nullability on its elements are independent, and mixing them up is an easy mistake. <code class="typ">List&lt;String&gt;?</code> is a list that might not exist at all. <code class="typ">List&lt;String?&gt;</code> is a list that definitely exists but may contain null elements. <code class="typ">List&lt;String?&gt;?</code> is both at once. Read the type left to right: the outer <code>?</code> describes the container, the inner one describes what's inside it.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Distinguishing the two axes</span>
+          <span class="card-badge badge-red">List&lt;T&gt;? vs List&lt;T?&gt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// The list itself might be null; if present, no null elements inside</span>
+<span class="kw">val</span> a: <span class="typ">List</span>&lt;<span class="typ">String</span>&gt;? = <span class="kw">null</span>
+<span class="kw">val</span> size = a?.<span class="fn">size</span> ?: <span class="num">0</span>
+
+<span class="cmt">// The list always exists, but individual elements might be null</span>
+<span class="kw">val</span> b: <span class="typ">List</span>&lt;<span class="typ">String</span>?&gt; = <span class="fn">listOf</span>(<span class="str">"a"</span>, <span class="kw">null</span>, <span class="str">"c"</span>)
+<span class="kw">for</span> (item <span class="kw">in</span> b) {
+    <span class="fn">println</span>(item?.<span class="fn">uppercase</span>() ?: <span class="str">"MISSING"</span>)
+}
+
+<span class="cmt">// Both: the list might be null, and any element inside might be too</span>
+<span class="kw">val</span> c: <span class="typ">List</span>&lt;<span class="typ">String</span>?&gt;? = <span class="kw">null</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">filterNotNull: dropping the nulls</span>
+          <span class="card-badge badge-red">filterNotNull</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> mixed: <span class="typ">List</span>&lt;<span class="typ">String</span>?&gt; = <span class="fn">listOf</span>(<span class="str">"a"</span>, <span class="kw">null</span>, <span class="str">"b"</span>, <span class="kw">null</span>, <span class="str">"c"</span>)
+
+<span class="cmt">// filterNotNull() narrows List<String?> to List<String>,</span>
+<span class="cmt">// dropping every null element</span>
+<span class="kw">val</span> clean: <span class="typ">List</span>&lt;<span class="typ">String</span>&gt; = mixed.<span class="fn">filterNotNull</span>()
+<span class="fn">println</span>(clean) <span class="cmt">// [a, b, c]</span>
+
+<span class="cmt">// mapNotNull: transform and drop nulls from the result in one pass</span>
+<span class="kw">val</span> lengths = mixed.<span class="fn">mapNotNull</span> { it?.<span class="fn">length</span> }
+<span class="fn">println</span>(lengths) <span class="cmt">// [1, 1, 1]</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Prefer <code>List&lt;T&gt;?</code> over <code>List&lt;T?&gt;</code> whenever you have the choice. "No list" and "empty list" already give you two ways to express absence — most APIs are clearer returning an empty list than <code>null</code>, and clearer still never allowing null elements inside a collection whose type doesn't need to model that. Reserve <code>List&lt;T?&gt;</code> for cases where "this slot is intentionally empty" is meaningfully different from "this slot doesn't exist."</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Nullable type</td><td>String?</td><td>Distinct type from String; compiler enforces checks</td></tr>
+          <tr><td>Safe call</td><td>x?.length</td><td>null if x is null; otherwise the call result</td></tr>
+          <tr><td>Safe call + let</td><td>x?.let { ... }</td><td>Block runs only when x is non-null</td></tr>
+          <tr><td>Elvis operator</td><td>x ?: default</td><td>Right side evaluated lazily, only if needed</td></tr>
+          <tr><td>Elvis guard clause</td><td>val y = x ?: return</td><td>return/throw are valid on the right of ?:</td></tr>
+          <tr><td>Not-null assertion</td><td>x!!</td><td>Throws NullPointerException if x is null</td></tr>
+          <tr><td>Unsafe cast</td><td>x as T</td><td>Throws ClassCastException on mismatch</td></tr>
+          <tr><td>Safe cast</td><td>x as? T</td><td>null on mismatch instead of throwing</td></tr>
+          <tr><td>Smart cast (null)</td><td>if (x != null) { x.foo() }</td><td>Requires val, or an unmodifiable var</td></tr>
+          <tr><td>Smart cast (type)</td><td>if (x is String) { x.length }</td><td>Narrows Any to String inside the block</td></tr>
+          <tr><td>Deferred var</td><td>lateinit var x: T</td><td>Non-null reference types only, no primitives</td></tr>
+          <tr><td>isInitialized check</td><td>::x.isInitialized</td><td>Avoids UninitializedPropertyAccessException</td></tr>
+          <tr><td>Deferred val</td><td>val x by lazy { ... }</td><td>Computed once, cached, thread-safe by default</td></tr>
+          <tr><td>Platform type</td><td>String! (tooling only)</td><td>Unchecked nullability from unannotated Java</td></tr>
+          <tr><td>Drop nulls</td><td>list.filterNotNull()</td><td>List&lt;T?&gt; → List&lt;T&gt;</td></tr>
+          <tr><td>Map + drop nulls</td><td>list.mapNotNull { ... }</td><td>Transform and filter in one pass</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#nullable-types">1: The Nullable Type Split</a></li>
+      <li><a href="#safe-call">2: Safe Call: ?.</a></li>
+      <li><a href="#elvis">3: Elvis Operator: ?:</a></li>
+      <li><a href="#not-null-assertion">4: Not-Null Assertion: !!</a></li>
+      <li><a href="#safe-casts">5: Safe Casts: as?</a></li>
+      <li><a href="#smart-casts">6: Smart Casts</a></li>
+      <li><a href="#lateinit-lazy">7: lateinit vs lazy</a></li>
+      <li><a href="#platform-types">8: Platform Types</a></li>
+      <li><a href="#nullable-collections">9: Nullable Collections</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
