@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin kotlin.text | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>kotlin<span>.text</span></h1>
+  <p>Searching, splitting, replacing, trimming, padding, buildString, raw strings, and Regex.</p>
+  <div class="hero-pills">
+    <span>Searching</span>
+    <span>split / join</span>
+    <span>replace</span>
+    <span>trim / pad</span>
+    <span>buildString</span>
+    <span>Regex</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html" class="active"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. SEARCHING ─────────────────────────────────────────── -->
+    <section class="section" id="searching">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔍</div>
+        <h2>Searching</h2>
+        <span class="section-tag">contains · startsWith · indexOf</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin's <code class="typ">String</code> is the same JVM <code class="typ">String</code> underneath, but every search operation here is an extension function rather than a Java-style method, and each one has a case-insensitive overload built in — no separate <code>equalsIgnoreCase</code>-style method to remember for every operation.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">contains, startsWith, endsWith, indexOf</span>
+          <span class="card-badge badge-blue">Search</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> text = <span class="str">"The Quick Brown Fox"</span>
+
+<span class="fn">println</span>(text.<span class="fn">contains</span>(<span class="str">"Quick"</span>))                    <span class="cmt">// true</span>
+<span class="fn">println</span>(text.<span class="fn">contains</span>(<span class="str">"quick"</span>, ignoreCase = <span class="kw">true</span>))  <span class="cmt">// true</span>
+
+<span class="fn">println</span>(text.<span class="fn">startsWith</span>(<span class="str">"The"</span>))   <span class="cmt">// true</span>
+<span class="fn">println</span>(text.<span class="fn">endsWith</span>(<span class="str">"Fox"</span>))     <span class="cmt">// true</span>
+
+<span class="fn">println</span>(text.<span class="fn">indexOf</span>(<span class="str">"Brown"</span>))  <span class="cmt">// 10: character index, or -1 if not found</span>
+<span class="fn">println</span>(text.<span class="fn">indexOf</span>(<span class="str">"missing"</span>)) <span class="cmt">// -1</span>
+
+<span class="cmt">// The in operator reads naturally for membership checks</span>
+<span class="fn">println</span>(<span class="str">"Quick"</span> <span class="kw">in</span> text)  <span class="cmt">// true: same as text.contains("Quick")</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 2. SPLITTING & JOINING ───────────────────────────────── -->
+    <section class="section" id="split-join">
+      <div class="section-header">
+        <div class="section-icon icon-green">✂️</div>
+        <h2>Splitting &amp; Joining</h2>
+        <span class="section-tag">split · joinToString · lines</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>split</code> takes a delimiter (or several) and returns a <code class="typ">List&lt;String&gt;</code> directly — no need to convert an array to a list afterward, unlike Java's <code>String.split</code>. <code>joinToString</code> is the reverse operation, and it's genuinely more capable than a simple delimiter-glue function: it accepts a prefix, a suffix, and a per-element transform in the same call.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">split: string to list</span>
+          <span class="card-badge badge-green">split</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> csv = <span class="str">"Ada,Grace,Alan"</span>
+
+<span class="fn">println</span>(csv.<span class="fn">split</span>(<span class="str">","</span>))            <span class="cmt">// [Ada, Grace, Alan]</span>
+<span class="fn">println</span>(csv.<span class="fn">split</span>(<span class="str">","</span>, limit = <span class="num">2</span>)) <span class="cmt">// [Ada, Grace,Alan]: stop after 2 parts</span>
+
+<span class="cmt">// Multiple delimiters in one call</span>
+<span class="fn">println</span>(<span class="str">"a, b; c"</span>.<span class="fn">split</span>(<span class="str">", "</span>, <span class="str">"; "</span>))  <span class="cmt">// [a, b, c]</span>
+
+<span class="cmt">// lines(): split on line breaks, handling \n and \r\n uniformly</span>
+<span class="kw">val</span> multiline = <span class="str">"line1\nline2\nline3"</span>
+<span class="fn">println</span>(multiline.<span class="fn">lines</span>())  <span class="cmt">// [line1, line2, line3]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">joinToString: list to string, with control</span>
+          <span class="card-badge badge-green">joinToString</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> names = <span class="fn">listOf</span>(<span class="str">"Ada"</span>, <span class="str">"Grace"</span>, <span class="str">"Alan"</span>)
+
+<span class="fn">println</span>(names.<span class="fn">joinToString</span>())              <span class="cmt">// "Ada, Grace, Alan": default separator ", "</span>
+<span class="fn">println</span>(names.<span class="fn">joinToString</span>(<span class="str">" | "</span>))       <span class="cmt">// "Ada | Grace | Alan"</span>
+
+<span class="cmt">// prefix, postfix, and a per-element transform, all in one call</span>
+<span class="kw">val</span> html = names.<span class="fn">joinToString</span>(
+    separator = <span class="str">", "</span>,
+    prefix = <span class="str">"&lt;ul&gt;"</span>,
+    postfix = <span class="str">"&lt;/ul&gt;"</span>
+) { <span class="str">"&lt;li&gt;$it&lt;/li&gt;"</span> }
+<span class="fn">println</span>(html)</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. REPLACING ─────────────────────────────────────────── -->
+    <section class="section" id="replacing">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🔁</div>
+        <h2>Replacing</h2>
+        <span class="section-tag">replace · replaceFirst · removePrefix</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Plain <code>replace</code> works against a literal string or a <code class="typ">Char</code>; a separate <code>Regex</code> overload of the same function name handles pattern-based replacement (covered below). For the common case of stripping a known prefix or suffix, dedicated functions are clearer than a general-purpose replace.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">replace, removePrefix, removeSuffix</span>
+          <span class="card-badge badge-purple">replace</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> text = <span class="str">"the cat sat on the mat"</span>
+
+<span class="fn">println</span>(text.<span class="fn">replace</span>(<span class="str">"the"</span>, <span class="str">"a"</span>))    <span class="cmt">// "a cat sat on a mat": replaces ALL occurrences</span>
+<span class="fn">println</span>(text.<span class="fn">replaceFirst</span>(<span class="str">"the"</span>, <span class="str">"a"</span>)) <span class="cmt">// "a cat sat on the mat": first occurrence only</span>
+
+<span class="kw">val</span> fileName = <span class="str">"report_final.pdf"</span>
+<span class="fn">println</span>(fileName.<span class="fn">removeSuffix</span>(<span class="str">".pdf"</span>))    <span class="cmt">// "report_final"</span>
+<span class="fn">println</span>(fileName.<span class="fn">removePrefix</span>(<span class="str">"report_"</span>)) <span class="cmt">// "final.pdf"</span>
+
+<span class="cmt">// removePrefix/removeSuffix are no-ops if the string doesn't</span>
+<span class="cmt">// actually start/end with the given text — no exception thrown</span>
+<span class="fn">println</span>(<span class="str">"hello"</span>.<span class="fn">removeSuffix</span>(<span class="str">".pdf"</span>))  <span class="cmt">// "hello": unchanged</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. TRIMMING & PADDING ────────────────────────────────── -->
+    <section class="section" id="trim-pad">
+      <div class="section-header">
+        <div class="section-icon icon-gold">📏</div>
+        <h2>Trimming &amp; Padding</h2>
+        <span class="section-tag">trim · trimIndent · padStart</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Whitespace handling splits into two families: trimming removes characters from the ends of a string, while <code>trimIndent</code>/<code>trimMargin</code> deal with the shared leading whitespace of a multi-line raw string block (see raw strings below). Padding does the opposite of trimming — growing a string to a target length, most often for aligned console output.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">trim, trimStart, trimEnd</span>
+          <span class="card-badge badge-gold">trim</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> padded = <span class="str">"   hello   "</span>
+
+<span class="fn">println</span>(<span class="str">"[${padded.trim()}]"</span>)       <span class="cmt">// "[hello]"</span>
+<span class="fn">println</span>(<span class="str">"[${padded.trimStart()}]"</span>)  <span class="cmt">// "[hello   ]"</span>
+<span class="fn">println</span>(<span class="str">"[${padded.trimEnd()}]"</span>)    <span class="cmt">// "[   hello]"</span>
+
+<span class="cmt">// trim accepts specific characters to strip, not just whitespace</span>
+<span class="fn">println</span>(<span class="str">"###hello###"</span>.<span class="fn">trim</span>(<span class="str">'#'</span>))  <span class="cmt">// "hello"</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">padStart, padEnd</span>
+          <span class="card-badge badge-gold">pad</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> id = <span class="str">"42"</span>
+<span class="fn">println</span>(id.<span class="fn">padStart</span>(<span class="num">6</span>, <span class="str">'0'</span>))  <span class="cmt">// "000042"</span>
+
+<span class="cmt">// Common use: aligning a printed table's columns</span>
+<span class="kw">val</span> rows = <span class="fn">listOf</span>(<span class="str">"Ada"</span> <span class="kw">to</span> <span class="num">36</span>, <span class="str">"Grace"</span> <span class="kw">to</span> <span class="num">85</span>)
+rows.<span class="fn">forEach</span> { (name, age) ->
+    <span class="fn">println</span>(name.<span class="fn">padEnd</span>(<span class="num">10</span>) + age.<span class="fn">toString</span>().<span class="fn">padStart</span>(<span class="num">3</span>))
+}
+<span class="cmt">// Ada        36</span>
+<span class="cmt">// Grace      85</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. BUILDSTRING ───────────────────────────────────────── -->
+    <section class="section" id="build-string">
+      <div class="section-header">
+        <div class="section-icon icon-red">🧱</div>
+        <h2>buildString</h2>
+        <span class="section-tag">StringBuilder receiver · efficient concatenation</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Building a string piece by piece with repeated <code>+=</code> allocates a new <code class="typ">String</code> on every append, since strings are immutable (see <a href="performance.html">Performance</a>). <code>buildString</code> gives you a scoped <code class="typ">StringBuilder</code> receiver — using the trailing-lambda-with-receiver pattern from <a href="functions-lambdas.html">Functions &amp; Lambdas</a> — so every call inside the block mutates one shared buffer, with a single final <code class="typ">String</code> allocated at the end.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Building incrementally</span>
+          <span class="card-badge badge-red">buildString</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> report = <span class="fn">buildString</span> {
+    <span class="fn">append</span>(<span class="str">"Report\n"</span>)
+    <span class="fn">append</span>(<span class="str">"------\n"</span>)
+    <span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">3</span>) {
+        <span class="fn">append</span>(<span class="str">"Line $i\n"</span>)
+    }
+    <span class="fn">appendLine</span>(<span class="str">"Done."</span>)   <span class="cmt">// append + a trailing newline</span>
+}
+<span class="fn">println</span>(report)</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 6. RAW STRINGS ───────────────────────────────────────── -->
+    <section class="section" id="raw-strings">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📜</div>
+        <h2>Raw Strings</h2>
+        <span class="section-tag">"""..."""· trimMargin · trimIndent</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A triple-quoted raw string treats backslashes literally — no escaping needed for backslashes, quotes, or newlines — which is why <a href="basics.html">Basics</a> introduces it for JSON literals and regex patterns. The remaining piece is indentation control: <code>trimIndent</code> strips the smallest common leading whitespace across every line, while <code>trimMargin</code> strips everything up to an explicit marker character you place at the start of each line, giving you more control when the block's natural indentation doesn't line up cleanly.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">trimIndent vs trimMargin</span>
+          <span class="card-badge badge-blue">Indentation control</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// trimIndent: strips the common minimum leading whitespace</span>
+<span class="kw">val</span> code = <span class="str">"""
+    fun main() {
+        println("hi")
+    }
+"""</span>.<span class="fn">trimIndent</span>()
+<span class="cmt">// "fun main() {\n    println(\"hi\")\n}" — the outer 4-space indent is gone,</span>
+<span class="cmt">// but the inner 4-space indent (relative) is preserved</span>
+
+<span class="cmt">// trimMargin: an explicit marker (default "|") anchors each line</span>
+<span class="kw">val</span> message = <span class="str">"""
+    |Dear Ada,
+    |Thanks for your order.
+    |Regards, Support
+"""</span>.<span class="fn">trimMargin</span>()
+<span class="fn">println</span>(message)
+<span class="cmt">// Dear Ada,</span>
+<span class="cmt">// Thanks for your order.</span>
+<span class="cmt">// Regards, Support</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for <code>trimIndent</code> by default — it needs no marker characters cluttering the literal. Switch to <code>trimMargin</code> specifically when the text itself might start a line with meaningful leading whitespace that <code>trimIndent</code>'s "smallest common indent" heuristic would otherwise misjudge.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. REGEX ──────────────────────────────────────────────── -->
+    <section class="section" id="regex">
+      <div class="section-header">
+        <div class="section-icon icon-green">🎯</div>
+        <h2>Regex</h2>
+        <span class="section-tag">toRegex() · matches · find · replace</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin's <code class="typ">Regex</code> wraps <code class="typ">java.util.regex.Pattern</code> with a friendlier API. Construct one with the <code class="typ">Regex(...)</code> constructor or the <code>.toRegex()</code> extension on a string — a raw string literal is the natural companion here, since regex patterns are already full of backslashes that would otherwise all need escaping.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">matches, find, and pattern-based replace</span>
+          <span class="card-badge badge-green">Regex</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> phonePattern = <span class="str">"""\d{3}-\d{4}"""</span>.<span class="fn">toRegex</span>()
+
+<span class="fn">println</span>(phonePattern.<span class="fn">matches</span>(<span class="str">"555-1234"</span>))  <span class="cmt">// true: entire string must match</span>
+<span class="fn">println</span>(phonePattern.<span class="fn">containsMatchIn</span>(<span class="str">"call 555-1234 now"</span>))  <span class="cmt">// true: match anywhere</span>
+
+<span class="cmt">// find(): returns the first MatchResult, or null</span>
+<span class="kw">val</span> match = phonePattern.<span class="fn">find</span>(<span class="str">"call 555-1234 or 555-9999"</span>)
+<span class="fn">println</span>(match?.value)  <span class="cmt">// "555-1234": the first match only</span>
+
+<span class="cmt">// findAll(): every match in the string</span>
+<span class="kw">val</span> allMatches = phonePattern.<span class="fn">findAll</span>(<span class="str">"call 555-1234 or 555-9999"</span>)
+<span class="fn">println</span>(allMatches.<span class="fn">map</span> { it.value }.<span class="fn">toList</span>())  <span class="cmt">// [555-1234, 555-9999]</span>
+
+<span class="cmt">// Capture groups</span>
+<span class="kw">val</span> datePattern = <span class="str">"""(\d{4})-(\d{2})-(\d{2})"""</span>.<span class="fn">toRegex</span>()
+<span class="kw">val</span> (year, month, day) = datePattern.<span class="fn">find</span>(<span class="str">"2024-03-15"</span>)!!.destructured
+<span class="fn">println</span>(<span class="str">"$year/$month/$day"</span>)  <span class="cmt">// "2024/03/15"</span>
+
+<span class="cmt">// Regex-based replace, using the string's own replace overload</span>
+<span class="kw">val</span> masked = <span class="str">"call 555-1234 now"</span>.<span class="fn">replace</span>(phonePattern, <span class="str">"XXX-XXXX"</span>)
+<span class="fn">println</span>(masked)  <span class="cmt">// "call XXX-XXXX now"</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>The <code>.destructured</code> property on a <code class="typ">MatchResult</code> plugs directly into destructuring declarations (see <a href="classes-objects.html">Classes &amp; Objects</a>), turning capture groups into named variables in one line instead of indexing into <code>match.groupValues[1]</code>, <code>[2]</code>, <code>[3]</code> by hand.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Function</th>
+            <th>Signature Shape</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Substring check</td><td>s.contains(x, ignoreCase = true)</td><td>Every search function has an ignoreCase overload</td></tr>
+          <tr><td>Position lookup</td><td>s.indexOf(x)</td><td>Returns -1 if not found, not an exception</td></tr>
+          <tr><td>Split to list</td><td>s.split(delim)</td><td>Returns List&lt;String&gt; directly</td></tr>
+          <tr><td>Join with control</td><td>list.joinToString(sep, prefix, postfix) { }</td><td>Per-element transform in the same call</td></tr>
+          <tr><td>Replace all</td><td>s.replace(old, new)</td><td>Overloaded for String, Char, or Regex</td></tr>
+          <tr><td>Strip known prefix/suffix</td><td>s.removePrefix(p) / removeSuffix(p)</td><td>No-op (not an error) if it doesn't match</td></tr>
+          <tr><td>Trim whitespace</td><td>s.trim() / trimStart() / trimEnd()</td><td>Accepts specific chars to strip instead</td></tr>
+          <tr><td>Pad to width</td><td>s.padStart(n, char) / padEnd(n, char)</td><td>Common for aligned console output</td></tr>
+          <tr><td>Efficient concatenation</td><td>buildString { append(...) }</td><td>One StringBuilder, one final allocation</td></tr>
+          <tr><td>Multi-line, no escaping</td><td>"""text"""</td><td>Backslashes and quotes are literal</td></tr>
+          <tr><td>Strip common indent</td><td>"""...""".trimIndent()</td><td>Uses the smallest leading whitespace across lines</td></tr>
+          <tr><td>Strip via marker</td><td>"""...""".trimMargin()</td><td>Anchors on a leading "|" (or custom) per line</td></tr>
+          <tr><td>Build a Regex</td><td>"""pattern""".toRegex()</td><td>Raw string avoids double-escaping backslashes</td></tr>
+          <tr><td>Full-string match</td><td>regex.matches(s)</td><td>The whole string must match, not a substring</td></tr>
+          <tr><td>First match</td><td>regex.find(s)</td><td>Returns MatchResult? — null if no match</td></tr>
+          <tr><td>Every match</td><td>regex.findAll(s)</td><td>Sequence&lt;MatchResult&gt;</td></tr>
+          <tr><td>Capture groups as variables</td><td>match.destructured</td><td>Destructure directly instead of groupValues[i]</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#searching">1: Searching</a></li>
+      <li><a href="#split-join">2: Splitting &amp; Joining</a></li>
+      <li><a href="#replacing">3: Replacing</a></li>
+      <li><a href="#trim-pad">4: Trimming &amp; Padding</a></li>
+      <li><a href="#build-string">5: buildString</a></li>
+      <li><a href="#raw-strings">6: Raw Strings</a></li>
+      <li><a href="#regex">7: Regex</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

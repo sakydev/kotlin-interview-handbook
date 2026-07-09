@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Sequences | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Sequences</h1>
+  <p>Lazy evaluation, asSequence, generateSequence, and when a lazy pipeline actually wins over an eager list chain.</p>
+  <div class="hero-pills">
+    <span>Lazy evaluation</span>
+    <span>asSequence</span>
+    <span>generateSequence</span>
+    <span>Intermediate vs terminal</span>
+    <span>When it wins</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html" class="active"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. LAZY EVALUATION ───────────────────────────────────── -->
+    <section class="section" id="lazy-evaluation">
+      <div class="section-header">
+        <div class="section-icon icon-blue">💤</div>
+        <h2>Lazy Evaluation</h2>
+        <span class="section-tag">element-at-a-time · no intermediate collections</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code class="typ">List</code> operator chain runs each step to completion, front to back, allocating a full intermediate list between every step. A <code class="typ">Sequence</code> chain instead processes one element through the <em>entire</em> chain of operations before moving to the next element — no step waits for the previous one to finish the whole collection first. This single change in evaluation order is the entire idea behind sequences; everything else on this page follows from it.</p>
+
+      <div class="diagram">
+<pre>  List (eager): step-by-step over the WHOLE collection
+
+    [1,2,3,4,5] --filter--> [2,4]     --map--> [4,16]     (2 full passes,
+                (full pass)            (full pass)          2 intermediate lists)
+
+  Sequence (lazy): element-by-element through the WHOLE chain
+
+    1 --filter(fail)-------------------------------X
+    2 --filter(pass)--> --map--> 4  ---------------> collected
+    3 --filter(fail)-------------------------------X
+    4 --filter(pass)--> --map--> 16 --------------> collected
+    5 --filter(fail)-------------------------------X
+
+    (1 pass total, no intermediate list — each element flows straight
+     through filter then map before the next element is even touched)</pre>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Nothing runs at all until a <strong>terminal operation</strong> is called — building a sequence and chaining <code>filter</code>/<code>map</code> on it does no work whatsoever by itself. This is the same "cold" idea that shows up again with <a href="coroutines.html">Flow</a>: defining the pipeline and running it are two separate steps.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. ASSEQUENCE ────────────────────────────────────────── -->
+    <section class="section" id="as-sequence">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔀</div>
+        <h2>asSequence</h2>
+        <span class="section-tag">List → Sequence · one-time conversion</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">The most common way to get a <code class="typ">Sequence</code> is converting an existing collection with <code>.asSequence()</code>. This is a thin, near-free wrapper — it doesn't copy the underlying data, just changes how iteration over it behaves for whatever chain follows.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Converting a chain from eager to lazy</span>
+          <span class="card-badge badge-green">asSequence</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = (<span class="num">1</span>..<span class="num">1_000_000</span>).<span class="fn">toList</span>()
+
+<span class="cmt">// Eager: allocates a full ~500,000-element list after filter,</span>
+<span class="cmt">// then a full list again after map, before take(3) ever runs</span>
+<span class="kw">val</span> eagerResult = numbers
+    .<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> }
+    .<span class="fn">map</span> { it * it }
+    .<span class="fn">take</span>(<span class="num">3</span>)
+
+<span class="cmt">// Lazy: only as many elements as needed to satisfy take(3) are</span>
+<span class="cmt">// ever pulled through filter and map — evaluation stops early</span>
+<span class="kw">val</span> lazyResult = numbers.<span class="fn">asSequence</span>()
+    .<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> }
+    .<span class="fn">map</span> { it * it }
+    .<span class="fn">take</span>(<span class="num">3</span>)
+    .<span class="fn">toList</span>()   <span class="cmt">// terminal operation: triggers the actual work</span>
+
+<span class="fn">println</span>(lazyResult)  <span class="cmt">// [4, 16, 36]</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. GENERATESEQUENCE ──────────────────────────────────── -->
+    <section class="section" id="generate-sequence">
+      <div class="section-header">
+        <div class="section-icon icon-purple">♾️</div>
+        <h2>generateSequence</h2>
+        <span class="section-tag">infinite sequences · seed + next</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>generateSequence</code> builds a sequence from a seed value and a function computing the next element from the previous one, with no predetermined end — the sequence can be genuinely infinite, since nothing is computed until something downstream asks for it. This is something a <code class="typ">List</code> fundamentally can't represent (a list has a size, known up front); it's a place sequences do something collections structurally cannot, not just something they do more efficiently.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">An infinite sequence, safely consumed</span>
+          <span class="card-badge badge-purple">generateSequence</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Powers of two: 1, 2, 4, 8, ... with no upper bound defined</span>
+<span class="kw">val</span> powersOfTwo = <span class="fn">generateSequence</span>(<span class="num">1</span>) { it * <span class="num">2</span> }
+
+<span class="cmt">// take() is what makes this safe: only 5 elements are ever computed</span>
+<span class="fn">println</span>(powersOfTwo.<span class="fn">take</span>(<span class="num">5</span>).<span class="fn">toList</span>())  <span class="cmt">// [1, 2, 4, 8, 16]</span>
+
+<span class="cmt">// A seed function instead of a fixed value, for lazy/random starts</span>
+<span class="kw">val</span> randomWalk = <span class="fn">generateSequence</span>(seedFunction = { <span class="num">0</span> }) { it + (-<span class="num">1</span>..<span class="num">1</span>).<span class="fn">random</span>() }
+<span class="fn">println</span>(randomWalk.<span class="fn">take</span>(<span class="num">5</span>).<span class="fn">toList</span>())
+
+<span class="cmt">// A nullable next function defines its own stopping point instead</span>
+<span class="kw">val</span> untilNull = <span class="fn">generateSequence</span>(<span class="num">1</span>) { <span class="kw">if</span> (it &lt; <span class="num">5</span>) it + <span class="num">1</span> <span class="kw">else</span> <span class="kw">null</span> }
+<span class="fn">println</span>(untilNull.<span class="fn">toList</span>())  <span class="cmt">// [1, 2, 3, 4, 5]: stops once the next function returns null</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Calling <code>.toList()</code> or any other unbounded terminal operation directly on a <code>generateSequence</code> with no natural stopping condition never returns — there's nothing to stop it. Always pair a truly infinite sequence with <code>take(n)</code>, <code>takeWhile { }</code>, or a next function that eventually returns <code>null</code>.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. INTERMEDIATE VS TERMINAL OPERATIONS ───────────────── -->
+    <section class="section" id="intermediate-terminal">
+      <div class="section-header">
+        <div class="section-icon icon-gold">⚙️</div>
+        <h2>Intermediate vs Terminal Operations</h2>
+        <span class="section-tag">lazy · eager · toList / sum / first</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Every operation in a sequence chain is one of two kinds. Intermediate operations (<code>filter</code>, <code>map</code>, <code>take</code>, <code>drop</code>) are themselves lazy — calling one just records a step in the pipeline and returns another unevaluated <code class="typ">Sequence</code>, doing no actual work. Terminal operations (<code>toList</code>, <code>sum</code>, <code>first</code>, <code>forEach</code>, <code>count</code>) are what actually pulls elements through the whole pipeline, and there's exactly one terminal operation per chain, always the last call.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Nothing happens until the terminal call</span>
+          <span class="card-badge badge-gold">Lazy vs eager</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> pipeline = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>).<span class="fn">asSequence</span>()
+    .<span class="fn">map</span> {
+        <span class="fn">println</span>(<span class="str">"mapping $it"</span>)
+        it * it
+    }
+    .<span class="fn">filter</span> {
+        <span class="fn">println</span>(<span class="str">"filtering $it"</span>)
+        it > <span class="num">5</span>
+    }
+<span class="cmt">// Nothing printed yet — map and filter are intermediate, not evaluated</span>
+
+<span class="kw">val</span> result = pipeline.<span class="fn">first</span>()   <span class="cmt">// terminal: pulls elements one at a time until one matches</span>
+<span class="cmt">// mapping 1</span>
+<span class="cmt">// filtering 1</span>
+<span class="cmt">// mapping 2</span>
+<span class="cmt">// filtering 4</span>
+<span class="cmt">// mapping 3</span>
+<span class="cmt">// filtering 9      ← 9 > 5: first() stops here, never touches 4 or 5</span>
+<span class="fn">println</span>(result)  <span class="cmt">// 9</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. WHEN SEQUENCES WIN, WHEN THEY DON'T ───────────────── -->
+    <section class="section" id="when-sequences-win">
+      <div class="section-header">
+        <div class="section-icon icon-red">⚖️</div>
+        <h2>When Sequences Win, When They Don't</h2>
+        <span class="section-tag">decision guide · measure first</span>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Sequences win when either the collection is large and the chain has several steps (avoiding multiple full intermediate lists actually adds up), or a short-circuiting terminal operation (<code>first</code>, <code>find</code>, <code>any</code>, <code>take(n)</code>) means most of the collection never needs processing at all — the <code>first()</code> example above only touched 3 of 5 elements. Lists win for short chains over small collections, where the sequence machinery's own iterator overhead costs more than the intermediate lists it's avoiding, and for anything needing random access or a known size up front, which sequences don't provide.</div>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Situation</th>
+            <th>Prefer</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Large collection, several chained operators</td><td>Sequence</td><td>Avoids one full intermediate list per step</td></tr>
+          <tr><td>Short-circuiting terminal op (first, take(n), any)</td><td>Sequence</td><td>Stops early; may never process most elements</td></tr>
+          <tr><td>Small collection, one or two operators</td><td>List</td><td>Sequence overhead outweighs the savings</td></tr>
+          <tr><td>Need the size upfront, or random access by index</td><td>List</td><td>Sequence has neither without a terminal op</td></tr>
+          <tr><td>Infinite or unbounded generation</td><td>Sequence</td><td>Lists can't represent an unbounded collection at all</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>From a collection</td><td>list.asSequence()</td><td>Thin wrapper, no data copy</td></tr>
+          <tr><td>Fixed values</td><td>sequenceOf(1, 2, 3)</td><td>Direct sequence construction</td></tr>
+          <tr><td>Infinite from seed</td><td>generateSequence(1) { it * 2 }</td><td>Must pair with take/takeWhile to terminate</td></tr>
+          <tr><td>Bounded by null</td><td>generateSequence(1) { if (...) it + 1 else null }</td><td>Stops when the next function returns null</td></tr>
+          <tr><td>Intermediate operation</td><td>filter / map / take / drop</td><td>Lazy: records a step, does no work yet</td></tr>
+          <tr><td>Terminal operation</td><td>toList / sum / first / forEach / count</td><td>Triggers evaluation of the whole pipeline</td></tr>
+          <tr><td>Large chain, large data</td><td>prefer Sequence</td><td>No per-step intermediate collection</td></tr>
+          <tr><td>Small chain, small data</td><td>prefer List</td><td>Sequence's iterator overhead isn't worth it</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#lazy-evaluation">1: Lazy Evaluation</a></li>
+      <li><a href="#as-sequence">2: asSequence</a></li>
+      <li><a href="#generate-sequence">3: generateSequence</a></li>
+      <li><a href="#intermediate-terminal">4: Intermediate vs Terminal</a></li>
+      <li><a href="#when-sequences-win">5: When Sequences Win</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
