@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Collections | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Collections</h1>
+  <p>List, Set, Map, the read-only vs mutable interface split, construction, iteration, and Array vs List.</p>
+  <div class="hero-pills">
+    <span>List / Set / Map</span>
+    <span>Read-only vs mutable</span>
+    <span>Construction</span>
+    <span>Iteration</span>
+    <span>Destructuring</span>
+    <span>Array vs List</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html" class="active"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. THE THREE COLLECTION SHAPES ───────────────────────── -->
+    <section class="section" id="shapes">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📚</div>
+        <h2>List, Set, Map</h2>
+        <span class="section-tag">ordered · unique · key-value</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin's collections build directly on Java's <code class="typ">java.util</code> collection classes underneath, but wrap them in a Kotlin-native API and type hierarchy. The three shapes answer three different questions about your data: <code class="typ">List</code> for "an ordered sequence, duplicates allowed," <code class="typ">Set</code> for "a group with no duplicates, membership is what matters," and <code class="typ">Map</code> for "a lookup from key to value." Choosing the right shape up front usually eliminates a whole category of bugs that come from bolting uniqueness or ordering logic onto the wrong structure.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">The three shapes, side by side</span>
+          <span class="card-badge badge-blue">List / Set / Map</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// List: ordered, indexed, duplicates allowed</span>
+<span class="kw">val</span> names: <span class="typ">List</span>&lt;<span class="typ">String</span>&gt; = <span class="fn">listOf</span>(<span class="str">"Ada"</span>, <span class="str">"Grace"</span>, <span class="str">"Ada"</span>)
+<span class="fn">println</span>(names[<span class="num">0</span>])       <span class="cmt">// Ada</span>
+<span class="fn">println</span>(names.<span class="fn">size</span>)     <span class="cmt">// 3: duplicates counted</span>
+
+<span class="cmt">// Set: unordered by contract (LinkedHashSet preserves insertion order</span>
+<span class="cmt">// in practice), duplicates automatically collapsed</span>
+<span class="kw">val</span> uniqueNames: <span class="typ">Set</span>&lt;<span class="typ">String</span>&gt; = <span class="fn">setOf</span>(<span class="str">"Ada"</span>, <span class="str">"Grace"</span>, <span class="str">"Ada"</span>)
+<span class="fn">println</span>(uniqueNames.<span class="fn">size</span>) <span class="cmt">// 2: "Ada" only counted once</span>
+<span class="fn">println</span>(<span class="str">"Ada"</span> <span class="kw">in</span> uniqueNames) <span class="cmt">// true</span>
+
+<span class="cmt">// Map: key → value lookup, keys unique</span>
+<span class="kw">val</span> ages: <span class="typ">Map</span>&lt;<span class="typ">String</span>, <span class="typ">Int</span>&gt; = <span class="fn">mapOf</span>(<span class="str">"Ada"</span> <span class="kw">to</span> <span class="num">36</span>, <span class="str">"Grace"</span> <span class="kw">to</span> <span class="num">85</span>)
+<span class="fn">println</span>(ages[<span class="str">"Ada"</span>])   <span class="cmt">// 36</span>
+<span class="fn">println</span>(ages[<span class="str">"Nobody"</span>]) <span class="cmt">// null: missing key, not an exception</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has exactly one built-in collection type doing double duty — <code>slice</code> for ordered sequences, <code>map</code> for key-value lookup — with no built-in set type (the idiomatic workaround is <code>map[T]struct{}</code> or <code>map[T]bool</code>). Kotlin's <code class="typ">Set</code> is a first-class type with its own dedicated API rather than a map you're using for its keys alone.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. READ-ONLY VS MUTABLE ───────────────────────────────── -->
+    <section class="section" id="read-only-mutable">
+      <div class="section-header">
+        <div class="section-icon icon-red">🔏</div>
+        <h2>Read-Only vs Mutable Interfaces</h2>
+        <span class="section-tag">List vs MutableList · not the same as immutable</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin splits every collection type into a read-only interface (<code class="typ">List</code>, <code class="typ">Set</code>, <code class="typ">Map</code>) with no mutating members at all, and a mutable sub-interface (<code class="typ">MutableList</code>, <code class="typ">MutableSet</code>, <code class="typ">MutableMap</code>) that adds <code>add</code>, <code>remove</code>, and friends. This split exists purely in Kotlin's type system — underneath, both usually point at the very same <code>java.util.ArrayList</code> at runtime, which means read-only is a compile-time view, not a runtime guarantee.</p>
+
+      <div class="diagram">
+<pre>  val numbers: MutableList&lt;Int&gt; = mutableListOf(1, 2, 3)
+  val view: List&lt;Int&gt; = numbers        // same underlying object, narrower view
+
+  numbers.add(4)     // fine: numbers is typed as MutableList
+  // view.add(4)      // ERROR: List has no add() — compile-time only
+
+  println(view)       // [1, 2, 3, 4]  ← the mutation through `numbers`
+                       //                 is visible through `view` too:
+                       //                 it was never actually immutable</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Read-only is a view, not a copy</span>
+          <span class="card-badge badge-red">List vs MutableList</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> mutable: <span class="typ">MutableList</span>&lt;<span class="typ">Int</span>&gt; = <span class="fn">mutableListOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+
+<span class="cmt">// readOnlyView is the SAME object underneath, just a narrower type</span>
+<span class="kw">val</span> readOnlyView: <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt; = mutable
+
+mutable.<span class="fn">add</span>(<span class="num">4</span>)
+<span class="fn">println</span>(readOnlyView) <span class="cmt">// [1, 2, 3, 4] — the "read-only" view saw the mutation</span>
+
+<span class="cmt">// If another part of the code holds a mutable reference,</span>
+<span class="cmt">// a "read-only" collection can still change out from under you</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>"Read-only" is not "immutable." A <code class="typ">List</code> reference guarantees only that <em>you</em> can't call a mutating method through that reference — it says nothing about whether some other reference to the same underlying object can. If you genuinely need immutability (a guarantee nothing, anywhere, ever mutates the collection), copy it defensively with <code>.toList()</code>, which allocates a real, independent copy. See <a href="gotchas.html">Gotchas</a> for the failure mode this causes in real code.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has nothing like this split — a <code>[]int</code> parameter is always mutable through the caller's backing array (though not resizable in place), and there's no type-level way to express "the callee can look but not touch." Kotlin's read-only interfaces are a compile-time-only API contract layered on top of the same mutability Go slices always have.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. CONSTRUCTION ──────────────────────────────────────── -->
+    <section class="section" id="construction">
+      <div class="section-header">
+        <div class="section-icon icon-green">🏗</div>
+        <h2>Construction</h2>
+        <span class="section-tag">listOf · mutableListOf · buildList</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Collections are built with top-level factory functions rather than constructors — there's no <code>List(...)</code> you call with <code>new</code>. The naming convention is consistent across all three shapes: <code>xOf(...)</code> for a fixed set of elements, <code>mutableXOf(...)</code> for a mutable starting point, and <code>buildX { ... }</code> when you need to construct a collection with more complex logic than a flat argument list allows.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Factory functions</span>
+          <span class="card-badge badge-green">*Of / build*</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Read-only construction</span>
+<span class="kw">val</span> a = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+<span class="kw">val</span> b = <span class="fn">setOf</span>(<span class="str">"x"</span>, <span class="str">"y"</span>)
+<span class="kw">val</span> c = <span class="fn">mapOf</span>(<span class="num">1</span> <span class="kw">to</span> <span class="str">"one"</span>, <span class="num">2</span> <span class="kw">to</span> <span class="str">"two"</span>)
+<span class="kw">val</span> empty = <span class="fn">emptyList</span>&lt;<span class="typ">String</span>&gt;()  <span class="cmt">// explicit type needed: nothing to infer from</span>
+
+<span class="cmt">// Mutable construction</span>
+<span class="kw">val</span> md = <span class="fn">mutableListOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+<span class="kw">val</span> ms = <span class="fn">mutableSetOf</span>(<span class="str">"x"</span>)
+<span class="kw">val</span> mm = <span class="fn">mutableMapOf</span>(<span class="str">"a"</span> <span class="kw">to</span> <span class="num">1</span>)
+
+<span class="cmt">// buildList / buildMap / buildSet: imperative construction,</span>
+<span class="cmt">// returning a read-only result — useful when the logic doesn't</span>
+<span class="cmt">// fit neatly into a flat listOf(...) call</span>
+<span class="kw">val</span> computed = <span class="fn">buildList</span> {
+    <span class="fn">add</span>(<span class="num">1</span>)
+    <span class="kw">if</span> (<span class="kw">true</span>) <span class="fn">add</span>(<span class="num">2</span>)
+    <span class="fn">addAll</span>(<span class="fn">listOf</span>(<span class="num">3</span>, <span class="num">4</span>))
+}
+<span class="fn">println</span>(computed) <span class="cmt">// [1, 2, 3, 4]</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default to the read-only factories (<code>listOf</code>, <code>setOf</code>, <code>mapOf</code>) for the same reason you default to <code>val</code> over <code>var</code>: most collections, once built, are never mutated again, and the narrower type documents that at the declaration site.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. ITERATION ─────────────────────────────────────────── -->
+    <section class="section" id="iteration">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🔄</div>
+        <h2>Iteration</h2>
+        <span class="section-tag">for-in · forEach · withIndex</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Every collection type implements <code class="typ">Iterable&lt;T&gt;</code>, which is exactly what makes <code>for (x in collection)</code> work — the same mechanism covered in <a href="basics.html">Basics</a>, extended here to each shape's own iteration semantics: a <code class="typ">List</code> yields elements in order, a <code class="typ">Set</code> yields each unique element once, and a <code class="typ">Map</code> yields <code class="typ">Map.Entry</code> objects you typically destructure into key and value.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Iterating each shape</span>
+          <span class="card-badge badge-purple">for-in</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> names = <span class="fn">listOf</span>(<span class="str">"Ada"</span>, <span class="str">"Grace"</span>)
+<span class="kw">for</span> (name <span class="kw">in</span> names) <span class="fn">println</span>(name)
+
+<span class="kw">val</span> ages = <span class="fn">mapOf</span>(<span class="str">"Ada"</span> <span class="kw">to</span> <span class="num">36</span>, <span class="str">"Grace"</span> <span class="kw">to</span> <span class="num">85</span>)
+<span class="kw">for</span> ((name, age) <span class="kw">in</span> ages) {
+    <span class="fn">println</span>(<span class="str">"$name is $age"</span>)
+}
+
+<span class="cmt">// forEach: the functional-style equivalent, as a trailing lambda</span>
+names.<span class="fn">forEach</span> { <span class="fn">println</span>(it) }
+ages.<span class="fn">forEach</span> { (name, age) -> <span class="fn">println</span>(<span class="str">"$name is $age"</span>) }
+
+<span class="cmt">// withIndex(): index alongside element, without manual counters</span>
+<span class="kw">for</span> ((i, name) <span class="kw">in</span> names.<span class="fn">withIndex</span>()) {
+    <span class="fn">println</span>(<span class="str">"$i: $name"</span>)
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div><code>forEach</code> is an inline function, so a bare <code>return</code> inside its lambda performs a non-local return from the enclosing function, not just a skip to the next element — this surprises developers reaching for it like a <code>continue</code>. See <a href="gotchas.html">Gotchas</a> for the full breakdown and the <code>return@forEach</code> fix.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. DESTRUCTURING ─────────────────────────────────────── -->
+    <section class="section" id="destructuring">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🧩</div>
+        <h2>Destructuring</h2>
+        <span class="section-tag">Map.Entry · Pair · componentN</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Destructuring — binding several names at once from a single value — works on anything exposing <code>component1()</code>, <code>component2()</code>, and so on, which is exactly how <code class="typ">Pair</code>, <code class="typ">Triple</code>, and <code class="typ">Map.Entry</code> are already set up in the standard library, and exactly what <code>data class</code> generates for your own types (see <a href="classes-objects.html">Classes &amp; Objects</a>).</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Destructuring in collection contexts</span>
+          <span class="card-badge badge-gold">component1/2</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> pair: <span class="typ">Pair</span>&lt;<span class="typ">String</span>, <span class="typ">Int</span>&gt; = <span class="str">"Ada"</span> <span class="kw">to</span> <span class="num">36</span>
+<span class="kw">val</span> (name, age) = pair
+<span class="fn">println</span>(<span class="str">"$name is $age"</span>) <span class="cmt">// Ada is 36</span>
+
+<span class="cmt">// The most common place you'll see it: map iteration and map()/filter() lambdas</span>
+<span class="kw">val</span> scores = <span class="fn">mapOf</span>(<span class="str">"Ada"</span> <span class="kw">to</span> <span class="num">95</span>, <span class="str">"Grace"</span> <span class="kw">to</span> <span class="num">88</span>)
+<span class="kw">val</span> summaries = scores.<span class="fn">map</span> { (name, score) -> <span class="str">"$name: $score"</span> }
+<span class="fn">println</span>(summaries) <span class="cmt">// [Ada: 95, Grace: 88]</span>
+
+<span class="cmt">// Skip a component you don't need with _</span>
+<span class="kw">val</span> (first, _, third) = <span class="typ">Triple</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+<span class="fn">println</span>(<span class="str">"$first, $third"</span>) <span class="cmt">// 1, 3</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 6. COMMON OPERATIONS OVERVIEW ────────────────────────── -->
+    <section class="section" id="operations-overview">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🛠</div>
+        <h2>Common Operations: a Preview</h2>
+        <span class="section-tag">map · filter · fold · sortedBy</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin's collection interfaces come with an extensive set of extension functions for transforming, filtering, and aggregating — enough that most loops you'd write by hand in other languages have a one-line equivalent here. This page only previews the shape of the API; the <a href="collections-api-guide.html">Collections API</a> guide is the full reference with every operation grouped by what it does.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A taste of the API</span>
+          <span class="card-badge badge-blue">Preview</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> numbers = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>, <span class="num">6</span>)
+
+<span class="kw">val</span> evenSquares = numbers
+    .<span class="fn">filter</span> { it % <span class="num">2</span> == <span class="num">0</span> }   <span class="cmt">// [2, 4, 6]</span>
+    .<span class="fn">map</span> { it * it }            <span class="cmt">// [4, 16, 36]</span>
+
+<span class="kw">val</span> total = numbers.<span class="fn">fold</span>(<span class="num">0</span>) { acc, n -> acc + n }  <span class="cmt">// 21</span>
+<span class="kw">val</span> sorted = numbers.<span class="fn">sortedByDescending</span> { it }        <span class="cmt">// [6, 5, 4, 3, 2, 1]</span>
+
+<span class="fn">println</span>(evenSquares)
+<span class="fn">println</span>(total)
+<span class="fn">println</span>(sorted)</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 7. ARRAY VS LIST ──────────────────────────────────────── -->
+    <section class="section" id="array-vs-list">
+      <div class="section-header">
+        <div class="section-icon icon-red">🧱</div>
+        <h2>Array vs List</h2>
+        <span class="section-tag">Array&lt;T&gt; · IntArray · fixed size</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code class="typ">Array&lt;T&gt;</code> is Kotlin's direct mapping to the JVM's native array type — fixed-size, mutable in place, and the only option where Java interop or raw performance demands it. In everyday application code, <code class="typ">List</code> and <code class="typ">MutableList</code> are almost always the better default: <code class="typ">Array</code> has no read-only variant, no resizing, and — because of type erasure and how the JVM represents arrays — is invariant in a way that occasionally surprises.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">When you'd reach for Array</span>
+          <span class="card-badge badge-red">Array&lt;T&gt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Fixed size at creation; no add/remove, only index assignment</span>
+<span class="kw">val</span> arr = <span class="fn">arrayOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+arr[<span class="num">0</span>] = <span class="num">99</span>
+<span class="fn">println</span>(arr.<span class="fn">joinToString</span>())  <span class="cmt">// 99, 2, 3</span>
+
+<span class="cmt">// Primitive specializations avoid boxing every element</span>
+<span class="cmt">// (see Performance for why this matters)</span>
+<span class="kw">val</span> ints: <span class="typ">IntArray</span> = <span class="fn">intArrayOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)  <span class="cmt">// backed by int[], not Integer[]</span>
+
+<span class="cmt">// varargs surface as Array under the hood — the main place</span>
+<span class="cmt">// you'll actually touch Array without asking for it directly</span>
+<span class="kw">fun</span> <span class="fn">sum</span>(<span class="kw">vararg</span> nums: <span class="typ">Int</span>): <span class="typ">Int</span> = nums.<span class="fn">sum</span>()  <span class="cmt">// nums: IntArray</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default to <code class="typ">List</code>/<code class="typ">MutableList</code> for application-level code — it has the richer API, a read-only view option, and resizing built in. Reach for <code class="typ">Array</code> only for vararg parameters, interfacing with a Java API that specifically requires an array, or a proven hot path where avoiding boxed elements matters (measure before optimizing here).</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> this maps closely to Go's own <code>array</code> vs <code>slice</code> split — a fixed-size <code>[3]int</code> vs a growable <code>[]int</code>. Kotlin's <code class="typ">Array&lt;T&gt;</code> is the fixed-size one; <code class="typ">List</code>/<code class="typ">MutableList</code> plays the role Go's <code>slice</code> plays as the default everyday choice.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Read-only list</td><td>listOf(1, 2, 3)</td><td>No add/remove; may still change via another reference</td></tr>
+          <tr><td>Mutable list</td><td>mutableListOf(1, 2, 3)</td><td>add/remove/set available</td></tr>
+          <tr><td>Read-only set</td><td>setOf("a", "b")</td><td>Duplicates collapsed at construction</td></tr>
+          <tr><td>Read-only map</td><td>mapOf("k" to "v")</td><td>Built from Pair entries via `to`</td></tr>
+          <tr><td>Missing key</td><td>map["missing"]</td><td>Returns null, doesn't throw</td></tr>
+          <tr><td>Defensive copy</td><td>list.toList()</td><td>Independent snapshot, immune to source mutation</td></tr>
+          <tr><td>Imperative build</td><td>buildList { add(x) }</td><td>Returns a read-only result</td></tr>
+          <tr><td>Indexed iteration</td><td>for ((i, v) in list.withIndex())</td><td>Avoids manual counters</td></tr>
+          <tr><td>Map iteration</td><td>for ((k, v) in map)</td><td>Destructures Map.Entry</td></tr>
+          <tr><td>Destructure a Pair</td><td>val (a, b) = pair</td><td>Needs component1()/component2()</td></tr>
+          <tr><td>Fixed-size array</td><td>arrayOf(1, 2, 3)</td><td>Mutable in place, can't grow/shrink</td></tr>
+          <tr><td>Primitive array</td><td>intArrayOf(1, 2, 3)</td><td>Backed by int[], avoids boxing</td></tr>
+          <tr><td>Filter + transform</td><td>list.filter { }.map { }</td><td>See Collections API guide for the full set</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#shapes">1: List, Set, Map</a></li>
+      <li><a href="#read-only-mutable">2: Read-Only vs Mutable</a></li>
+      <li><a href="#construction">3: Construction</a></li>
+      <li><a href="#iteration">4: Iteration</a></li>
+      <li><a href="#destructuring">5: Destructuring</a></li>
+      <li><a href="#operations-overview">6: Common Operations Preview</a></li>
+      <li><a href="#array-vs-list">7: Array vs List</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Generics | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Generics</h1>
+  <p>Type parameters, variance in both directions, star projection, reified types, and generic constraints.</p>
+  <div class="hero-pills">
+    <span>Type parameters</span>
+    <span>out / in</span>
+    <span>Star projection</span>
+    <span>reified</span>
+    <span>Type erasure</span>
+    <span>Constraints</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html" class="active"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. TYPE PARAMETERS ───────────────────────────────────── -->
+    <section class="section" id="type-parameters">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔤</div>
+        <h2>Type Parameters</h2>
+        <span class="section-tag">&lt;T&gt; · generic functions · generic classes</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A generic type parameter lets you write a function or class once and have it work correctly for any type, without giving up compile-time type checking the way a raw <code class="typ">Any</code> parameter would. <code>&lt;T&gt;</code> is a placeholder the caller fills in — either explicitly, or inferred from the arguments — and every use of <code>T</code> inside the body is checked as if it were a real type, because by the time the compiler is done, it is one.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Generic functions</span>
+          <span class="card-badge badge-blue">&lt;T&gt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// T is inferred from the argument at each call site</span>
+<span class="kw">fun</span> &lt;<span class="typ">T</span>&gt; <span class="fn">firstOrNull</span>(list: <span class="typ">List</span>&lt;<span class="typ">T</span>&gt;): <span class="typ">T</span>? {
+    <span class="kw">return</span> <span class="kw">if</span> (list.<span class="fn">isEmpty</span>()) <span class="kw">null</span> <span class="kw">else</span> list[<span class="num">0</span>]
+}
+
+<span class="fn">println</span>(<span class="fn">firstOrNull</span>(<span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)))       <span class="cmt">// 1 — T inferred as Int</span>
+<span class="fn">println</span>(<span class="fn">firstOrNull</span>(<span class="fn">listOf</span>(<span class="str">"a"</span>, <span class="str">"b"</span>)))      <span class="cmt">// a — T inferred as String</span>
+<span class="fn">println</span>(<span class="fn">firstOrNull</span>&lt;<span class="typ">Int</span>&gt;(<span class="fn">emptyList</span>())) <span class="cmt">// null — T given explicitly, nothing to infer from</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Generic classes</span>
+          <span class="card-badge badge-blue">class Box&lt;T&gt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// The class itself is parameterized: every instance fixes T once</span>
+<span class="kw">class</span> <span class="typ">Box</span>&lt;<span class="typ">T</span>&gt;(<span class="kw">var</span> value: <span class="typ">T</span>) {
+    <span class="kw">fun</span> &lt;<span class="typ">R</span>&gt; <span class="fn">map</span>(transform: (<span class="typ">T</span>) -> <span class="typ">R</span>): <span class="typ">Box</span>&lt;<span class="typ">R</span>&gt; = <span class="typ">Box</span>(<span class="fn">transform</span>(value))
+}
+
+<span class="kw">val</span> intBox = <span class="typ">Box</span>(<span class="num">42</span>)           <span class="cmt">// Box<Int></span>
+<span class="kw">val</span> stringBox = intBox.<span class="fn">map</span> { it.<span class="fn">toString</span>() }  <span class="cmt">// Box<String></span>
+<span class="fn">println</span>(stringBox.value)  <span class="cmt">// "42"</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go only gained generics in 1.18, so the concept itself may still be newer ground even with a Go background. The core idea maps directly: Go's <code>func First[T any](s []T) T</code> and Kotlin's <code>fun &lt;T&gt; firstOrNull(list: List&lt;T&gt;): T?</code> solve the same problem the same way. The syntax difference is just bracket placement — Kotlin's <code>&lt;T&gt;</code> comes before the function name, Go's after.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. DECLARATION-SITE VARIANCE ─────────────────────────── -->
+    <section class="section" id="declaration-variance">
+      <div class="section-header">
+        <div class="section-icon icon-green">📤</div>
+        <h2>Declaration-Site Variance: out / in</h2>
+        <span class="section-tag">out (producer) · in (consumer)</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Without variance annotations, <code class="typ">Box&lt;Dog&gt;</code> and <code class="typ">Box&lt;Animal&gt;</code> are unrelated types even if <code class="typ">Dog</code> is a subtype of <code class="typ">Animal</code> — generics are invariant by default, for a good reason covered below. Kotlin lets you opt into a safer form of subtyping directly on the type parameter's declaration: <code>out</code> marks a type parameter as covariant (only ever produced, read out, never accepted as input), and <code>in</code> marks it as contravariant (only ever consumed, accepted as input, never returned).</p>
+
+      <div class="diagram">
+<pre>  out T  (covariant — T only ever comes OUT)
+
+    Producer&lt;Dog&gt;  is a subtype of  Producer&lt;Animal&gt;
+    (a supply of Dogs can stand in for a supply of Animals)
+
+  in T   (contravariant — T only ever goes IN)
+
+    Consumer&lt;Animal&gt;  is a subtype of  Consumer&lt;Dog&gt;
+    (something that can handle any Animal can handle a Dog)
+
+  Neither out nor in T  (invariant — T is used both ways)
+
+    Box&lt;Dog&gt;  and  Box&lt;Animal&gt;  are unrelated types</pre>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">out: a type that's only produced</span>
+            <span class="card-badge badge-green">out T</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="kw">open</span> <span class="kw">class</span> <span class="typ">Animal</span>
+<span class="kw">class</span> <span class="typ">Dog</span> : <span class="typ">Animal</span>()
+
+<span class="cmt">// out T: instances only ever return T, never accept it as a param</span>
+<span class="kw">interface</span> <span class="typ">Producer</span>&lt;<span class="kw">out</span> <span class="typ">T</span>&gt; {
+    <span class="kw">fun</span> <span class="fn">produce</span>(): <span class="typ">T</span>
+}
+
+<span class="kw">class</span> <span class="typ">DogProducer</span> : <span class="typ">Producer</span>&lt;<span class="typ">Dog</span>&gt; {
+    <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">produce</span>() = <span class="typ">Dog</span>()
+}
+
+<span class="cmt">// Legal because of `out`: a Producer<Dog> can stand in for Producer<Animal></span>
+<span class="kw">val</span> producer: <span class="typ">Producer</span>&lt;<span class="typ">Animal</span>&gt; = <span class="typ">DogProducer</span>()
+<span class="kw">val</span> animal: <span class="typ">Animal</span> = producer.<span class="fn">produce</span>()</pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">in: a type that's only consumed</span>
+            <span class="card-badge badge-green">in T</span>
+          </div>
+          <div class="code-wrap">
+<pre><span class="cmt">// in T: instances only ever accept T as a parameter, never return it</span>
+<span class="kw">interface</span> <span class="typ">Consumer</span>&lt;<span class="kw">in</span> <span class="typ">T</span>&gt; {
+    <span class="kw">fun</span> <span class="fn">consume</span>(item: <span class="typ">T</span>)
+}
+
+<span class="kw">class</span> <span class="typ">AnimalConsumer</span> : <span class="typ">Consumer</span>&lt;<span class="typ">Animal</span>&gt; {
+    <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">consume</span>(item: <span class="typ">Animal</span>) = <span class="fn">println</span>(<span class="str">"consumed an animal"</span>)
+}
+
+<span class="cmt">// Legal because of `in`: something that consumes any Animal</span>
+<span class="cmt">// can be used wherever a Consumer<Dog> is needed</span>
+<span class="kw">val</span> consumer: <span class="typ">Consumer</span>&lt;<span class="typ">Dog</span>&gt; = <span class="typ">AnimalConsumer</span>()
+consumer.<span class="fn">consume</span>(<span class="typ">Dog</span>())</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>The standard library's own types show the pattern clearly: <code class="typ">List&lt;out T&gt;</code> is covariant, because a read-only list only ever produces its elements — this is exactly why <code class="typ">List&lt;String&gt;</code> can be passed where <code class="typ">List&lt;Any&gt;</code> is expected. <code class="typ">MutableList&lt;T&gt;</code> has no variance annotation, because <code>add(item: T)</code> both accepts and returns <code>T</code>, which is unsafe to treat as covariant (see why, next).</div>
+      </div>
+    </section>
+
+    <!-- ── 3. WHY INVARIANCE IS THE SAFE DEFAULT ────────────────── -->
+    <section class="section" id="invariance-safety">
+      <div class="section-header">
+        <div class="section-icon icon-red">🚧</div>
+        <h2>Why Invariance Is the Safe Default</h2>
+        <span class="section-tag">Java's array mistake · compile-time safety</span>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Java arrays are covariant by default (<code>Object[] arr = new String[3]</code> compiles), and it's a well-known design mistake: nothing stops you from then writing <code>arr[0] = 42</code>, which compiles but throws <code>ArrayStoreException</code> at runtime. Kotlin generics are invariant unless you explicitly opt into <code>out</code> or <code>in</code>, precisely so the compiler — not a runtime exception — is what catches an unsafe substitution.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Why a mutable, invariant type can't safely be out</span>
+          <span class="card-badge badge-red">The unsafe case</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">open</span> <span class="kw">class</span> <span class="typ">Animal</span>
+<span class="kw">class</span> <span class="typ">Dog</span> : <span class="typ">Animal</span>()
+<span class="kw">class</span> <span class="typ">Cat</span> : <span class="typ">Animal</span>()
+
+<span class="cmt">// If MutableList<out T> were allowed (it isn't — this is illustrative):</span>
+<span class="cmt">// val dogs: MutableList<Dog> = mutableListOf(Dog())</span>
+<span class="cmt">// val animals: MutableList<Animal> = dogs      // pretend this compiled</span>
+<span class="cmt">// animals.add(Cat())                            // adding a Cat to a "List<Dog>"!</span>
+<span class="cmt">// val d: Dog = dogs[1]                           // ClassCastException at runtime</span>
+
+<span class="cmt">// This is exactly why MutableList<T> has no variance annotation:</span>
+<span class="cmt">// the compiler refuses the middle assignment outright</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go's generics have no variance system at all — <code>[]Dog</code> and <code>[]Animal</code> are simply unrelated types with no subtyping relationship, full stop. Kotlin's variance annotations let you selectively unlock the subtyping Go never offers, but only where it's provably safe.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. USE-SITE VARIANCE & STAR PROJECTION ───────────────── -->
+    <section class="section" id="use-site-variance">
+      <div class="section-header">
+        <div class="section-icon icon-purple">📍</div>
+        <h2>Use-Site Variance &amp; Star Projection</h2>
+        <span class="section-tag">out at call site · in at call site · *</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Sometimes a type wasn't declared with <code>out</code> or <code>in</code> — maybe you don't own it, or it genuinely needs to be invariant in general — but at one specific call site, you only intend to read from it or only write to it. Use-site variance (also called type projection) lets you annotate the variance at the point of use instead of the declaration. Star projection, <code>&lt;*&gt;</code>, goes further: it means "some specific type, but I don't know or care which," useful when you need to accept any parameterization of a generic type without touching its contents.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">out / in at the call site</span>
+          <span class="card-badge badge-purple">Type projection</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// MutableList<T> is invariant, but here we only ever read from source</span>
+<span class="cmt">// and only ever write to destination — project the variance locally</span>
+<span class="kw">fun</span> &lt;<span class="typ">T</span>&gt; <span class="fn">copy</span>(source: <span class="typ">MutableList</span>&lt;<span class="kw">out</span> <span class="typ">T</span>&gt;, destination: <span class="typ">MutableList</span>&lt;<span class="kw">in</span> <span class="typ">T</span>&gt;) {
+    <span class="kw">for</span> (item <span class="kw">in</span> source) {
+        destination.<span class="fn">add</span>(item)
+    }
+}
+
+<span class="kw">val</span> ints: <span class="typ">MutableList</span>&lt;<span class="typ">Int</span>&gt; = <span class="fn">mutableListOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+<span class="kw">val</span> numbers: <span class="typ">MutableList</span>&lt;<span class="typ">Number</span>&gt; = <span class="fn">mutableListOf</span>()
+<span class="fn">copy</span>(ints, numbers)  <span class="cmt">// legal: source is read-only here, destination write-only</span>
+<span class="fn">println</span>(numbers)   <span class="cmt">// [1, 2, 3]</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Star projection: any type, unknown</span>
+          <span class="card-badge badge-purple">&lt;*&gt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// List<*> means "a List of some type, we don't know which"</span>
+<span class="cmt">// Reading elements gives Any? (safe: some unknown type IS an Any?)</span>
+<span class="cmt">// Writing is forbidden (unsafe: we don't know what type is expected)</span>
+<span class="kw">fun</span> <span class="fn">printAll</span>(list: <span class="typ">List</span>&lt;*&gt;) {
+    <span class="kw">for</span> (item <span class="kw">in</span> list) {
+        <span class="fn">println</span>(item)  <span class="cmt">// item: Any?</span>
+    }
+}
+
+<span class="fn">printAll</span>(<span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>))
+<span class="fn">printAll</span>(<span class="fn">listOf</span>(<span class="str">"a"</span>, <span class="str">"b"</span>))
+
+<span class="cmt">// Common use: checking type/size without caring about the element type</span>
+<span class="kw">fun</span> <span class="fn">isEmpty</span>(list: <span class="typ">List</span>&lt;*&gt;) = list.<span class="fn">isEmpty</span>()</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Star projection isn't the same as raw types in Java. <code class="typ">List&lt;*&gt;</code> is still fully type-checked — you just don't know the specific element type at that point, so the compiler restricts you to operations that are safe regardless of what it turns out to be (reading as <code class="typ">Any?</code>, but never writing a specific value in).</div>
+      </div>
+    </section>
+
+    <!-- ── 5. REIFIED TYPE PARAMETERS ───────────────────────────── -->
+    <section class="section" id="reified">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🔬</div>
+        <h2>reified with inline</h2>
+        <span class="section-tag">reified · inline fun · T at runtime</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Normally you can't do <code>x is T</code> or <code>T::class</code> inside a generic function, because type erasure (next section) means <code>T</code> doesn't exist as a real type at runtime — the JVM has already thrown it away. <code>reified</code> is Kotlin's escape hatch: it's only legal on an <code>inline</code> function's type parameter, because inlining pastes the function body — including a fully-known <code>T</code> from the call site — directly into the caller, so there's no erasure to fight.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Using the type at runtime</span>
+          <span class="card-badge badge-gold">reified T</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// Without reified, `x is T` and `T::class` wouldn't compile here —</span>
+<span class="cmt">// reified requires the function to be inline</span>
+<span class="kw">inline</span> <span class="kw">fun</span> &lt;<span class="kw">reified</span> <span class="typ">T</span>&gt; <span class="fn">isInstance</span>(x: <span class="typ">Any</span>?): <span class="typ">Boolean</span> = x <span class="kw">is</span> <span class="typ">T</span>
+
+<span class="fn">println</span>(<span class="fn">isInstance</span>&lt;<span class="typ">String</span>&gt;(<span class="str">"hi"</span>))  <span class="cmt">// true</span>
+<span class="fn">println</span>(<span class="fn">isInstance</span>&lt;<span class="typ">Int</span>&gt;(<span class="str">"hi"</span>))     <span class="cmt">// false</span>
+
+<span class="cmt">// A very common real use: a typed JSON deserializer, avoiding</span>
+<span class="cmt">// having to pass Class<T> or a TypeToken around manually</span>
+<span class="kw">inline</span> <span class="kw">fun</span> &lt;<span class="kw">reified</span> <span class="typ">T</span>&gt; <span class="fn">parseJson</span>(json: <span class="typ">String</span>): <span class="typ">T</span> {
+    <span class="kw">return</span> <span class="typ">Gson</span>().<span class="fn">fromJson</span>(json, <span class="typ">T</span>::<span class="kw">class</span>.java)
+}
+
+<span class="kw">val</span> user: <span class="typ">User</span> = <span class="fn">parseJson</span>(jsonString)  <span class="cmt">// T inferred as User from the target type</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>This is the trick behind Kotlin standard library functions like <code>filterIsInstance&lt;T&gt;()</code> and Android's <code>getSystemService&lt;T&gt;()</code> extensions — anywhere a Java API needed you to pass a <code>Class&lt;T&gt;</code> object as a workaround for erasure, a <code>reified</code> inline wrapper lets Kotlin callers just write the type parameter and skip the extra argument entirely.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. TYPE ERASURE ───────────────────────────────────────── -->
+    <section class="section" id="type-erasure">
+      <div class="section-header">
+        <div class="section-icon icon-blue">👻</div>
+        <h2>Type Erasure</h2>
+        <span class="section-tag">JVM bytecode · unchecked cast</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Kotlin generics, like Java's, exist only at compile time. Once compiled to JVM bytecode, <code class="typ">List&lt;String&gt;</code> and <code class="typ">List&lt;Int&gt;</code> are both just <code class="typ">List</code> — the type argument is erased. This is a JVM platform constraint Kotlin inherited, not a design choice Kotlin made; it's why <code>reified</code> needs the inline workaround above, and why certain generic type checks are restricted or produce a compiler warning instead of an error.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">What erasure forbids</span>
+          <span class="card-badge badge-blue">Erasure</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// This does not compile: T isn't available at runtime to check against</span>
+<span class="kw">fun</span> &lt;<span class="typ">T</span>&gt; <span class="fn">isTypeOf</span>(x: <span class="typ">Any</span>?): <span class="typ">Boolean</span> {
+    <span class="cmt">// return x is T   // ERROR: cannot check for erased type T</span>
+    <span class="kw">return</span> <span class="kw">false</span>
+}
+
+<span class="cmt">// Checking the outer type works fine; the type argument is unchecked</span>
+<span class="kw">val</span> list: <span class="typ">Any</span> = <span class="fn">listOf</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)
+<span class="kw">if</span> (list <span class="kw">is</span> <span class="typ">List</span>&lt;*&gt;) {          <span class="cmt">// fine: star projection acknowledges the erasure</span>
+    <span class="fn">println</span>(<span class="str">"it's a list"</span>)
+}
+<span class="cmt">// if (list is List<String>) { }  // warning: "unchecked cast", can't verify element type</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Erasure is why <code>reified</code> only works through <code>inline</code>: inlining is the one mechanism that gets the actual type back into scope at the call site, before erasure has a chance to throw it away during compilation to bytecode.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. GENERIC CONSTRAINTS ────────────────────────────────── -->
+    <section class="section" id="constraints">
+      <div class="section-header">
+        <div class="section-icon icon-green">📏</div>
+        <h2>Generic Constraints</h2>
+        <span class="section-tag">upper bound · where · multiple bounds</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">By default a type parameter is bounded only by <code class="typ">Any?</code> — it could be anything, including null. An upper bound narrows that, restricting <code>T</code> to a specific type or its subtypes, which is what lets you call that type's members directly on values of type <code>T</code> inside the function body. A <code>where</code> clause lets you require more than one bound at once.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Upper bounds</span>
+          <span class="card-badge badge-green">T : Bound</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// T : Comparable<T> restricts T to comparable types,</span>
+<span class="cmt">// which is what makes compareTo callable below</span>
+<span class="kw">fun</span> &lt;<span class="typ">T</span> : <span class="typ">Comparable</span>&lt;<span class="typ">T</span>&gt;&gt; <span class="fn">max</span>(a: <span class="typ">T</span>, b: <span class="typ">T</span>): <span class="typ">T</span> =
+    <span class="kw">if</span> (a.<span class="fn">compareTo</span>(b) >= <span class="num">0</span>) a <span class="kw">else</span> b
+
+<span class="fn">println</span>(<span class="fn">max</span>(<span class="num">3</span>, <span class="num">7</span>))         <span class="cmt">// 7: Int implements Comparable<Int></span>
+<span class="fn">println</span>(<span class="fn">max</span>(<span class="str">"apple"</span>, <span class="str">"banana"</span>)) <span class="cmt">// "banana": String implements Comparable<String></span>
+<span class="cmt">// max(User("Ada"), User("Grace"))  // ERROR unless User implements Comparable<User></span>
+
+<span class="cmt">// Without a bound, T defaults to Any?, and .compareTo wouldn't exist:</span>
+<span class="cmt">// fun <T> max(a: T, b: T) = if (a.compareTo(b) >= 0) a else b  // ERROR</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Multiple bounds with where</span>
+          <span class="card-badge badge-green">where</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">interface</span> <span class="typ">Named</span> { <span class="kw">val</span> name: <span class="typ">String</span> }
+
+<span class="cmt">// T must satisfy BOTH constraints: Comparable<T> AND Named</span>
+<span class="kw">fun</span> &lt;<span class="typ">T</span>&gt; <span class="fn">describeLargest</span>(items: <span class="typ">List</span>&lt;<span class="typ">T</span>&gt;): <span class="typ">String</span>
+        <span class="kw">where</span> <span class="typ">T</span> : <span class="typ">Comparable</span>&lt;<span class="typ">T</span>&gt;, <span class="typ">T</span> : <span class="typ">Named</span> {
+    <span class="kw">val</span> largest = items.<span class="fn">maxOrNull</span>() ?: <span class="kw">return</span> <span class="str">"empty"</span>
+    <span class="kw">return</span> <span class="str">"Largest: ${largest.name}"</span>   <span class="cmt">// .name available thanks to the Named bound</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go expresses the same idea with a constraint interface: <code>func Max[T constraints.Ordered](a, b T) T</code>. Kotlin's <code>T : Comparable&lt;T&gt;</code> upper bound and a <code>where</code> clause for multiple constraints are the direct equivalent of Go's type-parameter constraint interfaces — same purpose, different syntax.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Generic function</td><td>fun &lt;T&gt; f(x: T): T</td><td>T inferred from arguments, or given explicitly</td></tr>
+          <tr><td>Generic class</td><td>class Box&lt;T&gt;(val v: T)</td><td>Each instance fixes T once</td></tr>
+          <tr><td>Covariant (declaration-site)</td><td>interface P&lt;out T&gt;</td><td>T only produced; Producer&lt;Dog&gt; : Producer&lt;Animal&gt;</td></tr>
+          <tr><td>Contravariant (declaration-site)</td><td>interface C&lt;in T&gt;</td><td>T only consumed; Consumer&lt;Animal&gt; : Consumer&lt;Dog&gt;</td></tr>
+          <tr><td>Invariant (default)</td><td>class Box&lt;T&gt;</td><td>No subtyping between Box&lt;Dog&gt; and Box&lt;Animal&gt;</td></tr>
+          <tr><td>Use-site projection</td><td>fun f(x: MutableList&lt;out T&gt;)</td><td>Local read-only view of an invariant type</td></tr>
+          <tr><td>Star projection</td><td>List&lt;*&gt;</td><td>Unknown type argument; read as Any?, can't write</td></tr>
+          <tr><td>Reified type parameter</td><td>inline fun &lt;reified T&gt; f()</td><td>Only legal on inline functions; enables `is T`, `T::class`</td></tr>
+          <tr><td>Type erasure</td><td>List&lt;String&gt; → List at runtime</td><td>Type arguments don't exist in compiled bytecode</td></tr>
+          <tr><td>Upper bound</td><td>&lt;T : Comparable&lt;T&gt;&gt;</td><td>Restricts T, enables calling Bound's members on it</td></tr>
+          <tr><td>Multiple bounds</td><td>&lt;T&gt; ... where T : A, T : B</td><td>T must satisfy every listed constraint</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#type-parameters">1: Type Parameters</a></li>
+      <li><a href="#declaration-variance">2: Declaration-Site Variance</a></li>
+      <li><a href="#invariance-safety">3: Why Invariance Is Safe</a></li>
+      <li><a href="#use-site-variance">4: Use-Site Variance &amp; Star</a></li>
+      <li><a href="#reified">5: reified with inline</a></li>
+      <li><a href="#type-erasure">6: Type Erasure</a></li>
+      <li><a href="#constraints">7: Generic Constraints</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
