@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Gotchas | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .hero h1 span { color: var(--accent4); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Kotlin <span>Gotchas</span></h1>
+  <p>Tricky corners that trip up experienced developers. Each one shows the wrong behavior, why it happens, and the fix.</p>
+  <div class="hero-pills">
+    <span>==/===</span>
+    <span>data class copy</span>
+    <span>Mutable state</span>
+    <span>Scope functions</span>
+    <span>lateinit</span>
+    <span>Nullable generics</span>
+    <span>Non-local return</span>
+    <span>Coroutine leaks</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html" class="active"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. == VS === ──────────────────────────────────────────── -->
+    <section class="section" id="equality">
+      <div class="section-header">
+        <div class="section-icon icon-red">🟰</div>
+        <h2>== vs ===</h2>
+        <span class="section-tag">structural · referential</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Kotlin flips Java's operator meanings around. <code>==</code> calls <code>equals()</code> — structural equality, "do these represent the same value." <code>===</code> checks reference identity — "are these literally the same object in memory." Java developers coming to Kotlin sometimes reach for <code>===</code> out of habit, expecting <code>==</code> to behave like Java's reference-comparing <code>==</code>; it's the opposite.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Two equal-but-distinct objects</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Point</span>(<span class="kw">val</span> x: <span class="typ">Int</span>, <span class="kw">val</span> y: <span class="typ">Int</span>)
+
+<span class="kw">val</span> a = <span class="typ">Point</span>(<span class="num">1</span>, <span class="num">2</span>)
+<span class="kw">val</span> b = <span class="typ">Point</span>(<span class="num">1</span>, <span class="num">2</span>)
+
+<span class="fn">println</span>(a == b)   <span class="cmt">// true: equals() compares x and y</span>
+<span class="fn">println</span>(a === b)  <span class="cmt">// false: two distinct instances</span>
+
+<span class="cmt">// Boxed integers outside the cached range (-128..127) show the</span>
+<span class="cmt">// same trap Java has, if you ever do reach for ===</span>
+<span class="kw">val</span> n1: <span class="typ">Int</span>? = <span class="num">200</span>
+<span class="kw">val</span> n2: <span class="typ">Int</span>? = <span class="num">200</span>
+<span class="fn">println</span>(n1 == n2)   <span class="cmt">// true: structural</span>
+<span class="fn">println</span>(n1 === n2)  <span class="cmt">// false: different boxed Integer objects outside the cache</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Use <code>==</code> for essentially everything — it's what "is this the same value" means in almost every real check you'll write. Reach for <code>===</code> only when identity itself is the question: caching, memoization keys, or verifying a singleton (<code>object</code>) reference really is the one and only instance.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. DATA CLASS COPY WITH VAR ──────────────────────────── -->
+    <section class="section" id="copy-with-var">
+      <div class="section-header">
+        <div class="section-icon icon-gold">📇</div>
+        <h2>data class copy() with var Properties</h2>
+        <span class="section-tag">shallow copy · broken hashCode</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Covered in depth in <a href="classes-objects.html">Classes &amp; Objects</a>: a <code>data class</code> generates <code>equals()</code>/<code>hashCode()</code> from its primary-constructor properties. A <code>var</code> property is legal there, but it means the object's hash and equality can change after construction — which is exactly the kind of instability a <code class="typ">HashMap</code> or <code class="typ">HashSet</code> can't tolerate.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A mutated key vanishes from a HashSet</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">data</span> <span class="kw">class</span> <span class="typ">Task</span>(<span class="kw">val</span> id: <span class="typ">Int</span>, <span class="kw">var</span> completed: <span class="typ">Boolean</span>)
+
+<span class="kw">val</span> task = <span class="typ">Task</span>(<span class="num">1</span>, completed = <span class="kw">false</span>)
+<span class="kw">val</span> tasks = <span class="fn">hashSetOf</span>(task)
+
+<span class="fn">println</span>(task <span class="kw">in</span> tasks)  <span class="cmt">// true</span>
+
+task.completed = <span class="kw">true</span>       <span class="cmt">// mutates the var — hashCode() changes as a side effect</span>
+
+<span class="fn">println</span>(task <span class="kw">in</span> tasks)  <span class="cmt">// false! the set is still bucketed by the OLD hash</span>
+<span class="fn">println</span>(tasks.<span class="fn">size</span>)     <span class="cmt">// 1: the object is still physically in there, just unreachable by equals</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Keep every property on a <code>data class</code> a <code>val</code>. When state genuinely needs to change over time, use <code>copy()</code> to produce a new instance rather than mutating a <code>var</code> in place — that keeps the object's hash and equality stable for its entire lifetime, which is what every hash-based collection assumes.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. MUTABLE STATE BEHIND READ-ONLY INTERFACES ─────────── -->
+    <section class="section" id="mutable-behind-readonly">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🔏</div>
+        <h2>Mutable State Behind Read-Only Interfaces</h2>
+        <span class="section-tag">List vs immutable · false confidence</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Also covered in <a href="collections.html">Collections</a>: Kotlin's <code class="typ">List</code> is read-only, not immutable. The distinction matters most when a <code class="typ">List</code> you exposed is secretly backed by a <code class="typ">MutableList</code> someone else still holds a reference to.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A "safe" getter that isn't</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">ShoppingCart</span> {
+    <span class="kw">private</span> <span class="kw">val</span> _items = <span class="fn">mutableListOf</span>&lt;<span class="typ">String</span>&gt;()
+
+    <span class="cmt">// Looks safe: callers get a List, not a MutableList</span>
+    <span class="kw">val</span> items: <span class="typ">List</span>&lt;<span class="typ">String</span>&gt; <span class="kw">get</span>() = _items
+
+    <span class="kw">fun</span> <span class="fn">add</span>(item: <span class="typ">String</span>) = _items.<span class="fn">add</span>(item)
+}
+
+<span class="kw">val</span> cart = <span class="typ">ShoppingCart</span>()
+<span class="kw">val</span> snapshot = cart.items   <span class="cmt">// looks like a safe read-only reference...</span>
+cart.<span class="fn">add</span>(<span class="str">"apples"</span>)
+
+<span class="fn">println</span>(snapshot)  <span class="cmt">// [apples] — "snapshot" was never actually a snapshot;</span>
+                     <span class="cmt">// it's the same list, seen through a narrower type</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>If a caller needs a real point-in-time snapshot, return <code>_items.toList()</code> instead of <code>_items</code> directly — that allocates an independent copy. Returning the read-only view as-is is fine when callers only ever read it immediately and don't hold onto the reference across further mutations of the source.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. SCOPE FUNCTION MISUSE ─────────────────────────────── -->
+    <section class="section" id="scope-function-misuse">
+      <div class="section-header">
+        <div class="section-icon icon-green">🎯</div>
+        <h2>Scope Function Misuse</h2>
+        <span class="section-tag">let · apply · nested it · wrong return</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>The full decision table for <code>let</code>/<code>run</code>/<code>with</code>/<code>apply</code>/<code>also</code> lives in the <a href="scope-functions-guide.html">Scope Functions</a> guide. The two mistakes below are the ones that show up most in real code review.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">apply vs let: returning the wrong thing</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// apply returns the RECEIVER, not the lambda's last expression —</span>
+<span class="cmt">// easy to reach for when you actually wanted let's return value</span>
+<span class="kw">val</span> length = <span class="str">"hello"</span>.<span class="fn">apply</span> {
+    <span class="fn">uppercase</span>()   <span class="cmt">// this result is discarded!</span>
+}
+<span class="fn">println</span>(length)  <span class="cmt">// "hello": apply always returns the original receiver</span>
+
+<span class="cmt">// let returns the lambda's last expression — this is what was meant</span>
+<span class="kw">val</span> upper = <span class="str">"hello"</span>.<span class="fn">let</span> {
+    it.<span class="fn">uppercase</span>()
+}
+<span class="fn">println</span>(upper)  <span class="cmt">// "HELLO"</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Nested it shadows the outer one</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> users = <span class="fn">listOf</span>(<span class="str">"Ada"</span>, <span class="str">"Grace"</span>)
+<span class="kw">val</span> lengths = <span class="fn">listOf</span>(<span class="num">3</span>, <span class="num">5</span>)
+
+<span class="cmt">// Both lambdas use `it` implicitly — the inner one silently</span>
+<span class="cmt">// shadows the outer, and this compiles without a warning</span>
+users.<span class="fn">forEach</span> {
+    lengths.<span class="fn">filter</span> { it > <span class="num">3</span> }.<span class="fn">forEach</span> {
+        <span class="fn">println</span>(it)  <span class="cmt">// which "it"? the innermost one — easy to misread at a glance</span>
+    }
+}
+
+<span class="cmt">// Fix: name at least the outer parameter explicitly</span>
+users.<span class="fn">forEach</span> { user ->
+    lengths.<span class="fn">filter</span> { it > <span class="num">3</span> }.<span class="fn">forEach</span> { len ->
+        <span class="fn">println</span>(<span class="str">"$user: $len"</span>)
+    }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. LATEINIT PITFALLS ─────────────────────────────────── -->
+    <section class="section" id="lateinit-pitfalls">
+      <div class="section-header">
+        <div class="section-icon icon-purple">⏳</div>
+        <h2>lateinit Pitfalls</h2>
+        <span class="section-tag">UninitializedPropertyAccessException</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Reading before assignment crashes at runtime, not compile time</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">ReportView</span> {
+    <span class="kw">lateinit</span> <span class="kw">var</span> title: <span class="typ">String</span>
+
+    <span class="kw">fun</span> <span class="fn">render</span>(): <span class="typ">String</span> = <span class="str">"Report: $title"</span>
+}
+
+<span class="kw">val</span> view = <span class="typ">ReportView</span>()
+<span class="cmt">// Forgot to call view.title = "..." before this — compiles fine,</span>
+<span class="cmt">// crashes only when render() is actually called</span>
+<span class="fn">println</span>(view.<span class="fn">render</span>())
+<span class="cmt">// kotlin.UninitializedPropertyAccessException:</span>
+<span class="cmt">//   lateinit property title has not been initialized</span>
+
+<span class="cmt">// Guard against it explicitly when the assignment isn't guaranteed</span>
+<span class="cmt">// by a framework lifecycle you control</span>
+<span class="kw">if</span> (view::title.<span class="fn">isInitialized</span>) {
+    <span class="fn">println</span>(view.<span class="fn">render</span>())
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>The compiler gives <code>lateinit</code> properties no static guarantee of initialization before use — that's the whole trade-off you're making versus a constructor parameter. Reserve <code>lateinit</code> for properties a well-understood lifecycle (dependency injection, Android's <code>onCreate</code>, test <code>@BeforeEach</code>) genuinely assigns before first use, and prefer a constructor parameter whenever that's actually an option.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. NULLABLE GENERICS: T VS T? ────────────────────────── -->
+    <section class="section" id="nullable-generics">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🧬</div>
+        <h2>Nullable Generics: T vs T?</h2>
+        <span class="section-tag">Any? upper bound · unexpected null</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>An unbounded type parameter <code>&lt;T&gt;</code> defaults to an implicit upper bound of <code class="typ">Any?</code>, not <code class="typ">Any</code> — meaning <code>T</code> can be a nullable type unless you constrain it. This surprises developers used to thinking of a bare type parameter as automatically non-null.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">T silently allows null</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// No bound written means T : Any? implicitly — T can be nullable</span>
+<span class="kw">class</span> <span class="typ">Box</span>&lt;<span class="typ">T</span>&gt;(<span class="kw">val</span> value: <span class="typ">T</span>)
+
+<span class="kw">val</span> box: <span class="typ">Box</span>&lt;<span class="typ">String</span>?&gt; = <span class="typ">Box</span>(<span class="kw">null</span>)  <span class="cmt">// compiles fine: T inferred as String?</span>
+<span class="fn">println</span>(box.value?.<span class="fn">length</span>)             <span class="cmt">// must still null-check to use it</span>
+
+<span class="cmt">// Constrain T : Any to rule nullable types out entirely</span>
+<span class="kw">class</span> <span class="typ">NonNullBox</span>&lt;<span class="typ">T</span> : <span class="typ">Any</span>&gt;(<span class="kw">val</span> value: <span class="typ">T</span>)
+<span class="cmt">// val bad: NonNullBox<String?> = NonNullBox(null)  // ERROR: T bound to Any excludes String?</span>
+<span class="kw">val</span> good = <span class="typ">NonNullBox</span>(<span class="str">"Ada"</span>)  <span class="cmt">// fine: T inferred as String (non-null)</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Write <code>&lt;T : Any&gt;</code> explicitly whenever a generic class or function genuinely can't handle a null value of <code>T</code> — a cache, a non-empty container, anything that would misbehave silently on a null element. Don't rely on "I never intended to allow null" as documentation; make the compiler enforce it.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. NON-LOCAL RETURNS & FOREACH ───────────────────────── -->
+    <section class="section" id="non-local-return">
+      <div class="section-header">
+        <div class="section-icon icon-red">↩️</div>
+        <h2>Non-Local Returns &amp; forEach</h2>
+        <span class="section-tag">inline · return@label · silent early exit</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Covered from the mechanism side in <a href="functions-lambdas.html">Functions &amp; Lambdas</a>: because <code>forEach</code> is <code>inline</code>, a bare <code>return</code> inside its lambda doesn't just skip to the next element — it returns from the entire enclosing function. Developers coming from languages where a callback's <code>return</code> only affects the callback get bitten by this reflexively.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">return inside forEach exits the whole function</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">findFirstNegative</span>(numbers: <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt;): <span class="typ">Int</span>? {
+    numbers.<span class="fn">forEach</span> {
+        <span class="kw">if</span> (it &lt; <span class="num">0</span>) {
+            <span class="kw">return</span> it   <span class="cmt">// returns from findFirstNegative — this one actually works as intended</span>
+        }
+    }
+    <span class="kw">return</span> <span class="kw">null</span>
+}
+
+<span class="kw">fun</span> <span class="fn">printAllPositive</span>(numbers: <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt;) {
+    numbers.<span class="fn">forEach</span> {
+        <span class="kw">if</span> (it &lt; <span class="num">0</span>) {
+            <span class="kw">return</span>       <span class="cmt">// BUG: exits printAllPositive entirely on the FIRST negative,</span>
+        }                     <span class="cmt">// not just skipping this one element like "continue" would</span>
+        <span class="fn">println</span>(it)
+    }
+    <span class="fn">println</span>(<span class="str">"done"</span>)   <span class="cmt">// never reached if any number was negative</span>
+}
+
+<span class="cmt">// Fix: a labeled return targets only the current lambda invocation</span>
+<span class="kw">fun</span> <span class="fn">printAllPositiveFixed</span>(numbers: <span class="typ">List</span>&lt;<span class="typ">Int</span>&gt;) {
+    numbers.<span class="fn">forEach</span> {
+        <span class="kw">if</span> (it &lt; <span class="num">0</span>) <span class="kw">return</span>@forEach   <span class="cmt">// skips just this element</span>
+        <span class="fn">println</span>(it)
+    }
+    <span class="fn">println</span>(<span class="str">"done"</span>)   <span class="cmt">// now always reached</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>When you actually want "skip this element, keep going," use <code>return@forEach</code> or, often more readably, switch to an ordinary <code>for</code> loop with <code>continue</code> — a real loop makes the control flow visually obvious in a way a labeled return inside a lambda doesn't.</div>
+      </div>
+    </section>
+
+    <!-- ── 8. ELVIS WITH SIDE EFFECTS ────────────────────────────── -->
+    <section class="section" id="elvis-side-effects">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🎸</div>
+        <h2>Elvis with Side Effects</h2>
+        <span class="section-tag">?: · lazy evaluation · order of operations</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">The right side only runs when needed</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">var</span> logCount = <span class="num">0</span>
+<span class="kw">fun</span> <span class="fn">logAndReturnDefault</span>(): <span class="typ">String</span> {
+    logCount++
+    <span class="kw">return</span> <span class="str">"default"</span>
+}
+
+<span class="kw">val</span> name: <span class="typ">String</span>? = <span class="str">"Ada"</span>
+
+<span class="cmt">// Easy to assume the log call always runs "as part of the expression" —</span>
+<span class="cmt">// it doesn't, because ?: only evaluates its right side when needed</span>
+<span class="kw">val</span> result = name ?: <span class="fn">logAndReturnDefault</span>()
+<span class="fn">println</span>(logCount)  <span class="cmt">// 0: name wasn't null, so logAndReturnDefault() never ran</span>
+
+<span class="kw">val</span> missing: <span class="typ">String</span>? = <span class="kw">null</span>
+<span class="kw">val</span> result2 = missing ?: <span class="fn">logAndReturnDefault</span>()
+<span class="fn">println</span>(logCount)  <span class="cmt">// 1: this time it did run</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>This laziness is almost always what you want — see <a href="null-safety.html">Null Safety</a> for why it's a feature, not a bug. It only becomes a gotcha when a side effect on the right side of <code>?:</code> was assumed to run unconditionally, like a metrics counter or an audit log the author expected to fire on every call regardless of nullness.</div>
+      </div>
+    </section>
+
+    <!-- ── 9. INTEGER OVERFLOW ──────────────────────────────────── -->
+    <section class="section" id="integer-overflow">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔢</div>
+        <h2>Integer Overflow</h2>
+        <span class="section-tag">Int.MAX_VALUE · silent wraparound</span>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Kotlin's <code class="typ">Int</code> arithmetic wraps silently on overflow, same as Java — there's no automatic promotion to a bigger type and no exception thrown by default. A sum that exceeds <code>Int.MAX_VALUE</code> (2,147,483,647) doesn't crash; it wraps around to a negative number, and the bug can hide for a long time if the inputs that trigger it are rare.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Overflow wraps around instead of throwing</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> max = <span class="typ">Int</span>.<span class="typ">MAX_VALUE</span>
+<span class="fn">println</span>(max)          <span class="cmt">// 2147483647</span>
+<span class="fn">println</span>(max + <span class="num">1</span>)      <span class="cmt">// -2147483648: silently wrapped, no exception</span>
+
+<span class="cmt">// A realistic trigger: summing a large list of Ints</span>
+<span class="kw">val</span> largeNumbers = <span class="fn">List</span>(<span class="num">3</span>) { <span class="typ">Int</span>.<span class="typ">MAX_VALUE</span> }
+<span class="fn">println</span>(largeNumbers.<span class="fn">sum</span>())  <span class="cmt">// wraps to a negative, nonsensical total</span>
+
+<span class="cmt">// Fixes: use Long for values that can plausibly grow large,</span>
+<span class="cmt">// or use the checked arithmetic functions that throw instead of wrapping</span>
+<span class="kw">val</span> total: <span class="typ">Long</span> = largeNumbers.<span class="fn">sumOf</span> { it.<span class="fn">toLong</span>() }
+<span class="fn">println</span>(total)  <span class="cmt">// 6442450941: correct</span>
+
+<span class="kw">val</span> checked = <span class="fn">Math</span>.<span class="fn">addExact</span>(max, <span class="num">1</span>)  <span class="cmt">// throws ArithmeticException on overflow</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Default to <code class="typ">Long</code> for any accumulator, counter, or sum that could plausibly grow large over the program's lifetime (IDs, timestamps in milliseconds, running totals). It costs nothing meaningful in memory or speed on the JVM and removes an entire class of silent-wraparound bugs.</div>
+      </div>
+    </section>
+
+    <!-- ── 10. COROUTINE SCOPE LEAKS ─────────────────────────────── -->
+    <section class="section" id="coroutine-scope-leaks">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🔀</div>
+        <h2>Coroutine Scope Leaks</h2>
+        <span class="section-tag">GlobalScope · unstructured · outlives caller</span>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Covered from the design side in <a href="coroutines.html">Coroutines</a>: structured concurrency exists specifically to prevent this. The gotcha here is what it looks like when a codebase quietly opts out of that protection, usually to work around a compile error rather than as a deliberate choice.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Reaching for GlobalScope to silence a compile error</span>
+          <span class="card-badge badge-red">Gotcha</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">UserRepository</span> {
+    <span class="kw">fun</span> <span class="fn">refreshInBackground</span>() {
+        <span class="cmt">// No CoroutineScope available in this non-suspend function,</span>
+        <span class="cmt">// so it's tempting to reach for GlobalScope to make it compile</span>
+        <span class="typ">GlobalScope</span>.<span class="fn">launch</span> {
+            <span class="fn">delay</span>(<span class="num">5000</span>)
+            <span class="fn">syncWithServer</span>()
+        }
+        <span class="cmt">// This coroutine has no parent. Nothing cancels it if the</span>
+        <span class="cmt">// repository, the screen, or the whole feature is torn down</span>
+        <span class="cmt">// first — it keeps running, potentially touching freed state.</span>
+    }
+}
+
+<span class="cmt">// Fix: give the class its own scope tied to a real lifecycle,</span>
+<span class="cmt">// and cancel it explicitly when that lifecycle ends</span>
+<span class="kw">class</span> <span class="typ">UserRepositoryFixed</span>(
+    <span class="kw">private</span> <span class="kw">val</span> scope: <span class="typ">CoroutineScope</span>
+) {
+    <span class="kw">fun</span> <span class="fn">refreshInBackground</span>() {
+        scope.<span class="fn">launch</span> {
+            <span class="fn">delay</span>(<span class="num">5000</span>)
+            <span class="fn">syncWithServer</span>()
+        }
+    }
+}
+<span class="cmt">// scope.cancel() when the repository's owner is done with it —</span>
+<span class="cmt">// now the launched work is provably bounded by a real lifetime</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Treat "I need <code>GlobalScope</code> to make this compile" as a design smell, not a solution. The fix is almost always to thread a properly-scoped <code class="typ">CoroutineScope</code> into whatever class needs to launch work — tied to a ViewModel, a request lifecycle, or an explicit <code>close()</code>/<code>cancel()</code> — so every coroutine you start has a clear owner responsible for stopping it.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#equality">1: == vs ===</a></li>
+      <li><a href="#copy-with-var">2: data class copy() with var</a></li>
+      <li><a href="#mutable-behind-readonly">3: Mutable State Behind Read-Only</a></li>
+      <li><a href="#scope-function-misuse">4: Scope Function Misuse</a></li>
+      <li><a href="#lateinit-pitfalls">5: lateinit Pitfalls</a></li>
+      <li><a href="#nullable-generics">6: Nullable Generics: T vs T?</a></li>
+      <li><a href="#non-local-return">7: Non-Local Returns &amp; forEach</a></li>
+      <li><a href="#elvis-side-effects">8: Elvis with Side Effects</a></li>
+      <li><a href="#integer-overflow">9: Integer Overflow</a></li>
+      <li><a href="#coroutine-scope-leaks">10: Coroutine Scope Leaks</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

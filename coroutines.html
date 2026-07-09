@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Coroutines | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Coroutines</h1>
+  <p>suspend functions, structured concurrency, dispatchers, cancellation, and the concurrency model that replaces callback hell.</p>
+  <div class="hero-pills">
+    <span>suspend</span>
+    <span>launch / async</span>
+    <span>Structured concurrency</span>
+    <span>Dispatchers</span>
+    <span>Cancellation</span>
+    <span>Channels</span>
+    <span>Flow</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html" class="active"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. SUSPEND FUNCTIONS ─────────────────────────────────── -->
+    <section class="section" id="suspend">
+      <div class="section-header">
+        <div class="section-icon icon-blue">⏸</div>
+        <h2>suspend Functions</h2>
+        <span class="section-tag">suspend fun · continuation · not a thread</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code>suspend</code> function can pause its execution at a well-defined point and resume later, without blocking the thread it started on. The compiler rewrites it using the continuation-passing style under the hood, but you write it like ordinary sequential code — no callbacks, no <code>.then()</code> chains. Marking a function <code>suspend</code> is a compile-time contract: it can only be called from another <code>suspend</code> function or from inside a coroutine, and the compiler enforces that boundary so you can never accidentally call a suspending function from plain synchronous code.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Sequential code that doesn't block a thread</span>
+          <span class="card-badge badge-blue">suspend fun</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// suspend marks a function as a potential pause point</span>
+<span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">fetchUser</span>(id: <span class="typ">Int</span>): <span class="typ">User</span> {
+    <span class="fn">delay</span>(<span class="num">1000</span>)          <span class="cmt">// suspends here — frees the thread, doesn't sleep it</span>
+    <span class="kw">return</span> <span class="typ">User</span>(id, <span class="str">"Ada"</span>)
+}
+
+<span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">fetchUserWithPosts</span>(id: <span class="typ">Int</span>): <span class="typ">Pair</span>&lt;<span class="typ">User</span>, <span class="typ">List</span>&lt;<span class="typ">Post</span>&gt;&gt; {
+    <span class="cmt">// Reads top to bottom like ordinary blocking code —</span>
+    <span class="cmt">// no nested callbacks despite each call suspending</span>
+    <span class="kw">val</span> user = <span class="fn">fetchUser</span>(id)
+    <span class="kw">val</span> posts = <span class="fn">fetchPosts</span>(user.id)
+    <span class="kw">return</span> user <span class="kw">to</span> posts
+}
+
+<span class="cmt">// fetchUser(1)  // ERROR from plain code: suspend fun requires a</span>
+<span class="cmt">//               // suspend caller or a coroutine to run in</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>"Suspends, doesn't block" is the core distinction. Blocking a thread means the OS keeps that thread parked, unable to do anything else, for the whole wait. Suspending means the coroutine gives the thread back to the pool to run other work, and picks up again — possibly on a different thread — once the awaited operation completes. This is what lets thousands of coroutines share a handful of real OS threads.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> a goroutine is a real (if lightweight) unit the Go runtime schedules onto OS threads automatically, with no keyword marking a function as "goroutine-safe" — any function can run inside one. Kotlin's coroutines instead require the compiler's cooperation: only functions marked <code>suspend</code> can pause, and the compiler transforms them at compile time. It's a more explicit, more restricted mechanism than Go's, in exchange for the compiler being able to statically enforce where suspension can and can't happen.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. LAUNCH VS ASYNC ───────────────────────────────────── -->
+    <section class="section" id="launch-async">
+      <div class="section-header">
+        <div class="section-icon icon-green">🚀</div>
+        <h2>launch vs async</h2>
+        <span class="section-tag">Job · Deferred&lt;T&gt; · await</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Both <code>launch</code> and <code>async</code> start a new coroutine, and both are ordinary functions, not language keywords — they're extension functions on <code class="typ">CoroutineScope</code> from the kotlinx.coroutines library. They differ in what they hand back: <code>launch</code> returns a <code class="typ">Job</code> for when you only care about the side effect and completion/cancellation, <code>async</code> returns a <code class="typ">Deferred&lt;T&gt;</code> for when you need a result back, retrieved by calling the suspending <code>await()</code>.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">launch: fire-and-manage, no return value</span>
+          <span class="card-badge badge-green">launch</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="kw">main</span>() = <span class="fn">runBlocking</span> {
+    <span class="cmt">// launch starts a coroutine and returns a Job immediately;</span>
+    <span class="cmt">// the caller doesn't wait for it unless it explicitly joins</span>
+    <span class="kw">val</span> job = <span class="fn">launch</span> {
+        <span class="fn">delay</span>(<span class="num">500</span>)
+        <span class="fn">println</span>(<span class="str">"background work done"</span>)
+    }
+    <span class="fn">println</span>(<span class="str">"launched, not waiting yet"</span>)
+    job.<span class="fn">join</span>()  <span class="cmt">// suspend until the launched coroutine finishes</span>
+    <span class="fn">println</span>(<span class="str">"job joined"</span>)
+}
+<span class="cmt">// launched, not waiting yet</span>
+<span class="cmt">// background work done</span>
+<span class="cmt">// job joined</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">async: concurrent, awaitable result</span>
+          <span class="card-badge badge-green">async / await</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">fetchUser</span>(): <span class="typ">User</span> { <span class="fn">delay</span>(<span class="num">1000</span>); <span class="kw">return</span> <span class="typ">User</span>(<span class="num">1</span>, <span class="str">"Ada"</span>) }
+<span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">fetchPosts</span>(): <span class="typ">List</span>&lt;<span class="typ">Post</span>&gt; { <span class="fn">delay</span>(<span class="num">1000</span>); <span class="kw">return</span> <span class="fn">listOf</span>() }
+
+<span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">loadDashboard</span>() = <span class="fn">coroutineScope</span> {
+    <span class="cmt">// Both start immediately and run concurrently —</span>
+    <span class="cmt">// this takes ~1000ms total, not 2000ms</span>
+    <span class="kw">val</span> userDeferred = <span class="fn">async</span> { <span class="fn">fetchUser</span>() }
+    <span class="kw">val</span> postsDeferred = <span class="fn">async</span> { <span class="fn">fetchPosts</span>() }
+
+    <span class="cmt">// await() suspends until each result is ready</span>
+    <span class="kw">val</span> user = userDeferred.<span class="fn">await</span>()
+    <span class="kw">val</span> posts = postsDeferred.<span class="fn">await</span>()
+    <span class="str">"${user.name}: ${posts.size} posts"</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for <code>async</code> only when you genuinely need concurrent results, and start both <code>async</code> calls before calling <code>await()</code> on either — calling <code>.await()</code> immediately after each individual <code>async</code> serializes them and defeats the purpose. For a single sequential suspending call with no concurrency need, just call the <code>suspend</code> function directly; wrapping it in <code>async { }.await()</code> adds coroutine overhead for no benefit.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. STRUCTURED CONCURRENCY & SCOPES ───────────────────── -->
+    <section class="section" id="structured-concurrency">
+      <div class="section-header">
+        <div class="section-icon icon-purple">🌳</div>
+        <h2>Structured Concurrency &amp; Scopes</h2>
+        <span class="section-tag">CoroutineScope · parent-child · no leaks</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Structured concurrency is the rule that every coroutine is launched inside a <code class="typ">CoroutineScope</code>, and a scope cannot complete until all the coroutines launched inside it have completed. Children form a tree rooted at the scope: cancel the parent, and every descendant is cancelled with it; let a child throw an unhandled exception, and by default it propagates up and cancels its siblings too. This is the mechanism that makes "a coroutine that outlives its intended caller" structurally difficult instead of a manual bookkeeping exercise.</p>
+
+      <div class="diagram">
+<pre>  coroutineScope {                 ← parent scope
+      launch { taskA() }           ← child 1
+      launch {                     ← child 2
+          launch { taskB() }       ← grandchild, still tracked by the tree
+      }
+  }
+  // this line only runs after EVERY coroutine in the tree completes
+
+  Cancelling the parent job cancels every child and grandchild.
+  An uncaught exception in any child cancels its siblings and
+  propagates to the parent (unless a SupervisorJob changes that).</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">coroutineScope: waits for every child</span>
+          <span class="card-badge badge-purple">coroutineScope</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">loadEverything</span>() = <span class="fn">coroutineScope</span> {
+    <span class="fn">launch</span> { <span class="fn">delay</span>(<span class="num">100</span>); <span class="fn">println</span>(<span class="str">"task A done"</span>) }
+    <span class="fn">launch</span> { <span class="fn">delay</span>(<span class="num">200</span>); <span class="fn">println</span>(<span class="str">"task B done"</span>) }
+    <span class="fn">println</span>(<span class="str">"both launched"</span>)
+    <span class="cmt">// coroutineScope suspends here until BOTH launched children finish —</span>
+    <span class="cmt">// this is what "structured" means: no dangling background work</span>
+}
+<span class="cmt">// both launched</span>
+<span class="cmt">// task A done</span>
+<span class="cmt">// task B done</span>
+<span class="cmt">// loadEverything() only returns after this line</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div><code>GlobalScope.launch { }</code> deliberately breaks structured concurrency — it launches a coroutine tied to nothing, with no parent to cancel it and no scope waiting for it to finish. It's almost always the wrong choice in application code; a coroutine started this way can outlive the screen, request, or component that started it, silently leaking work and resources. Scope every coroutine to something with a well-defined lifetime instead.</div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go has no built-in equivalent — a goroutine you <code>go func() { ... }()</code> is unstructured by default, and it's entirely on you to track its lifetime with a <code>sync.WaitGroup</code> or a cancellation channel. Structured concurrency is Kotlin baking that discipline into the type system: you cannot launch a coroutine without a scope to hold it, the same way <code>context.Context</code> cancellation propagation is a Go convention rather than something the compiler enforces.</div>
+      </div>
+    </section>
+
+    <!-- ── 4. DISPATCHERS ───────────────────────────────────────── -->
+    <section class="section" id="dispatchers">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🧵</div>
+        <h2>Dispatchers</h2>
+        <span class="section-tag">Default · IO · Main · Unconfined</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A dispatcher decides which thread (or thread pool) a coroutine actually runs on. Coroutines aren't tied to one thread for their whole lifetime the way a traditional thread is — a coroutine can suspend on one thread and resume on another, and the dispatcher is what controls that assignment. Choosing the right dispatcher is mostly about not blocking the wrong pool: don't run CPU-bound work on the thread pool meant for blocking I/O, and vice versa.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">The standard dispatchers</span>
+          <span class="card-badge badge-gold">Dispatchers</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">example</span>() = <span class="fn">coroutineScope</span> {
+    <span class="cmt">// Dispatchers.Default: CPU-bound work — sized to the number of cores</span>
+    <span class="fn">launch</span>(<span class="typ">Dispatchers</span>.<span class="typ">Default</span>) {
+        <span class="fn">heavyComputation</span>()
+    }
+
+    <span class="cmt">// Dispatchers.IO: blocking calls — file access, JDBC, blocking HTTP —</span>
+    <span class="cmt">// backed by a much larger, elastic thread pool built for waiting</span>
+    <span class="fn">launch</span>(<span class="typ">Dispatchers</span>.<span class="typ">IO</span>) {
+        <span class="fn">readLargeFile</span>()
+    }
+
+    <span class="cmt">// Dispatchers.Main: the UI thread (Android, Swing, JavaFX) —</span>
+    <span class="cmt">// unavailable in plain JVM console apps without a UI framework</span>
+    <span class="fn">launch</span>(<span class="typ">Dispatchers</span>.<span class="typ">Main</span>) {
+        <span class="fn">updateUi</span>()
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>A blocking call (plain JDBC, <code>Thread.sleep</code>, blocking file I/O) run on <code class="typ">Dispatchers.Default</code> or inside a coroutine with no dispatcher switch is a common real-world bug: it parks one of the few CPU-bound threads on I/O wait, starving other CPU-bound coroutines that are actually ready to run. Move blocking calls to <code class="typ">Dispatchers.IO</code>, which is specifically sized to tolerate many parked threads.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. WITHCONTEXT ───────────────────────────────────────── -->
+    <section class="section" id="with-context">
+      <div class="section-header">
+        <div class="section-icon icon-red">🔁</div>
+        <h2>withContext</h2>
+        <span class="section-tag">switch dispatcher · suspend, no new coroutine</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>withContext</code> switches the current coroutine to a different dispatcher for the duration of a block, then switches back — without launching a new coroutine or a new job. This is the idiomatic way to move a single suspending operation onto the right dispatcher, in contrast to <code>launch(dispatcher)</code>, which starts an entirely separate concurrent coroutine.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Moving one call to the right dispatcher</span>
+          <span class="card-badge badge-red">withContext</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">loadUserName</span>(id: <span class="typ">Int</span>): <span class="typ">String</span> {
+    <span class="cmt">// withContext suspends the CURRENT coroutine, runs the block on</span>
+    <span class="cmt">// Dispatchers.IO, then resumes back on the original dispatcher —</span>
+    <span class="cmt">// no new coroutine, no new Job, just a temporary context switch</span>
+    <span class="kw">val</span> user = <span class="fn">withContext</span>(<span class="typ">Dispatchers</span>.<span class="typ">IO</span>) {
+        database.<span class="fn">query</span>(<span class="str">"SELECT name FROM users WHERE id = $id"</span>)
+    }
+    <span class="kw">return</span> user.name
+    <span class="cmt">// execution here is back on whatever dispatcher called loadUserName</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>Because <code>withContext</code> doesn't start a new coroutine, it doesn't add anything to the structured-concurrency tree — it's purely a dispatcher hop within the same logical coroutine. That's the key distinction from <code>launch(Dispatchers.IO) { }</code>: the latter creates a genuinely separate, concurrently-running child.</div>
+      </div>
+    </section>
+
+    <!-- ── 6. CANCELLATION & COOPERATION ────────────────────────── -->
+    <section class="section" id="cancellation">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🛑</div>
+        <h2>Cancellation &amp; Cooperation</h2>
+        <span class="section-tag">cooperative · isActive · CancellationException</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Cancellation in coroutines is cooperative, not preemptive — cancelling a <code class="typ">Job</code> doesn't forcibly kill a thread mid-instruction the way a hard kill would. It sets a flag and throws a special <code class="typ">CancellationException</code> at the next suspension point the coroutine reaches. This means a coroutine running a tight, non-suspending computation loop won't notice it's been cancelled until it either suspends or explicitly checks.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Suspending functions check cancellation automatically</span>
+          <span class="card-badge badge-blue">Cooperative</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">example</span>() = <span class="fn">coroutineScope</span> {
+    <span class="kw">val</span> job = <span class="fn">launch</span> {
+        <span class="fn">repeat</span>(<span class="num">1000</span>) { i ->
+            <span class="fn">println</span>(<span class="str">"working: $i"</span>)
+            <span class="fn">delay</span>(<span class="num">100</span>)  <span class="cmt">// a suspension point — checks for cancellation here</span>
+        }
+    }
+    <span class="fn">delay</span>(<span class="num">350</span>)
+    job.<span class="fn">cancel</span>()  <span class="cmt">// the loop stops around iteration 3, at the next delay()</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A CPU-bound loop needs a manual check</span>
+          <span class="card-badge badge-blue">isActive</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">example</span>() = <span class="fn">coroutineScope</span> {
+    <span class="kw">val</span> job = <span class="fn">launch</span>(<span class="typ">Dispatchers</span>.<span class="typ">Default</span>) {
+        <span class="kw">var</span> i = <span class="num">0</span>
+        <span class="cmt">// No suspending call in this loop, so cancellation is never</span>
+        <span class="cmt">// noticed unless checked explicitly — this would spin forever</span>
+        <span class="cmt">// on cancel() without the isActive check</span>
+        <span class="kw">while</span> (isActive) {
+            i++
+            <span class="kw">if</span> (i % <span class="num">100_000_000</span> == <span class="num">0</span>) <span class="fn">println</span>(<span class="str">"still computing"</span>)
+        }
+    }
+    <span class="fn">delay</span>(<span class="num">500</span>)
+    job.<span class="fn">cancelAndJoin</span>()  <span class="cmt">// cancel, then suspend until it's actually finished</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Never blanket-catch and swallow exceptions inside a coroutine with a bare <code>catch (e: Exception)</code>. <code class="typ">CancellationException</code> is how cooperative cancellation propagates — silently swallowing it prevents the coroutine (and its cleanup) from ever actually stopping. Catch specific exception types, or re-throw <code class="typ">CancellationException</code> if you must catch broadly.</div>
+      </div>
+    </section>
+
+    <!-- ── 7. EXCEPTION HANDLING ────────────────────────────────── -->
+    <section class="section" id="exception-handling">
+      <div class="section-header">
+        <div class="section-icon icon-green">🚨</div>
+        <h2>Exception Handling</h2>
+        <span class="section-tag">try/catch · SupervisorJob · CoroutineExceptionHandler</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">An uncaught exception inside a regular <code>coroutineScope</code> child cancels the whole scope: siblings included. That's structured concurrency working as intended — one failed unit of work shouldn't leave the others in an undefined state. Sometimes that's not what you want, though: a UI with five independent widgets shouldn't all crash because one network call failed. <code class="typ">SupervisorJob</code> is the escape hatch, isolating failures to the child that threw.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Default: one failure cancels all siblings</span>
+          <span class="card-badge badge-green">coroutineScope</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">example</span>() {
+    <span class="kw">try</span> {
+        <span class="fn">coroutineScope</span> {
+            <span class="fn">launch</span> { <span class="fn">delay</span>(<span class="num">100</span>); <span class="kw">throw</span> <span class="typ">RuntimeException</span>(<span class="str">"task A failed"</span>) }
+            <span class="fn">launch</span> { <span class="fn">delay</span>(<span class="num">500</span>); <span class="fn">println</span>(<span class="str">"task B: never prints"</span>) }
+        }
+    } <span class="kw">catch</span> (e: <span class="typ">RuntimeException</span>) {
+        <span class="fn">println</span>(<span class="str">"caught: ${e.message}"</span>)  <span class="cmt">// task B was cancelled before it could finish</span>
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">SupervisorJob: isolate failures per child</span>
+          <span class="card-badge badge-green">supervisorScope</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">example</span>() = <span class="fn">supervisorScope</span> {
+    <span class="kw">val</span> jobA = <span class="fn">launch</span> {
+        <span class="fn">delay</span>(<span class="num">100</span>)
+        <span class="kw">throw</span> <span class="typ">RuntimeException</span>(<span class="str">"task A failed"</span>)
+    }
+    <span class="kw">val</span> jobB = <span class="fn">launch</span> {
+        <span class="fn">delay</span>(<span class="num">500</span>)
+        <span class="fn">println</span>(<span class="str">"task B: still runs to completion"</span>)  <span class="cmt">// unaffected by A's failure</span>
+    }
+}
+<span class="cmt">// task A's exception must still be handled — e.g. via a</span>
+<span class="cmt">// CoroutineExceptionHandler installed on the scope — or it</span>
+<span class="cmt">// propagates to the thread's default uncaught exception handler</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Wrap risky code in an ordinary <code>try</code>/<code>catch</code> around the suspending call itself when you can — it's the clearest and most predictable option. Reach for <code class="typ">SupervisorJob</code>/<code>supervisorScope</code> specifically when you need independent children that shouldn't cancel each other, and a <code class="typ">CoroutineExceptionHandler</code> as a last-resort catch-all for exceptions that escape a top-level <code>launch</code> (it has no effect on <code>async</code>, whose exceptions surface through <code>await()</code> instead).</div>
+      </div>
+    </section>
+
+    <!-- ── 8. CHANNELS ──────────────────────────────────────────── -->
+    <section class="section" id="channels">
+      <div class="section-header">
+        <div class="section-icon icon-purple">📡</div>
+        <h2>Channels</h2>
+        <span class="section-tag">Channel&lt;T&gt; · send/receive · producer-consumer</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code class="typ">Channel&lt;T&gt;</code> is a coroutine-based pipe for passing values between coroutines, conceptually close to a blocking queue but built around suspension instead of thread blocking: <code>send</code> suspends when the channel is full, <code>receive</code> suspends when it's empty. Channels model hot, one-shot streams of events between concurrently running coroutines — a producer-consumer pipeline is the classic use case.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Producer-consumer with a Channel</span>
+          <span class="card-badge badge-purple">Channel&lt;T&gt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">example</span>() = <span class="fn">coroutineScope</span> {
+    <span class="kw">val</span> channel = <span class="typ">Channel</span>&lt;<span class="typ">Int</span>&gt;(capacity = <span class="num">2</span>)
+
+    <span class="fn">launch</span> {
+        <span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>..<span class="num">5</span>) {
+            channel.<span class="fn">send</span>(i)   <span class="cmt">// suspends once the buffer of 2 fills up</span>
+            <span class="fn">println</span>(<span class="str">"sent $i"</span>)
+        }
+        channel.<span class="fn">close</span>()   <span class="cmt">// signals no more values are coming</span>
+    }
+
+    <span class="fn">launch</span> {
+        <span class="cmt">// for-in over a channel receives until it's closed and drained</span>
+        <span class="kw">for</span> (value <span class="kw">in</span> channel) {
+            <span class="fn">delay</span>(<span class="num">100</span>)
+            <span class="fn">println</span>(<span class="str">"received $value"</span>)
+        }
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> a Kotlin <code class="typ">Channel</code> maps almost directly onto a Go <code>chan</code> — buffered or unbuffered, <code>send</code>/<code>receive</code> mirroring <code>ch &lt;- v</code>/<code>&lt;-ch</code>, and closing signals completion the same way. The difference is scope: a Go channel is a standalone primitive usable from any goroutine, while a Kotlin <code class="typ">Channel</code> is typically created and consumed within a structured coroutine hierarchy, and in modern Kotlin code, <a href="flow-guide.html">Flow</a> often replaces channels for the common "stream of values" case, reserving raw channels for genuine producer-consumer coordination.</div>
+      </div>
+    </section>
+
+    <!-- ── 9. FLOW: A FIRST LOOK ────────────────────────────────── -->
+    <section class="section" id="flow-intro">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🌀</div>
+        <h2>Flow: a First Look</h2>
+        <span class="section-tag">cold stream · collect · see the full guide</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code class="typ">Flow&lt;T&gt;</code> is an asynchronous, cold stream of values — cold meaning the producer block doesn't run at all until something calls <code>collect</code> on it, and runs again from scratch for every new collector. Where a single <code>suspend</code> function returns one value, a <code class="typ">Flow</code> returns zero or more values over time, each one delivered through suspension rather than blocking. This is only the shape of it; the full operator set, <code class="typ">StateFlow</code>/<code class="typ">SharedFlow</code>, and context handling live in the dedicated <a href="flow-guide.html">Flow</a> guide.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Building and collecting a Flow</span>
+          <span class="card-badge badge-gold">flow { } / collect</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">countdown</span>(from: <span class="typ">Int</span>): <span class="typ">Flow</span>&lt;<span class="typ">Int</span>&gt; = <span class="fn">flow</span> {
+    <span class="kw">for</span> (i <span class="kw">in</span> from <span class="kw">downTo</span> <span class="num">1</span>) {
+        <span class="fn">delay</span>(<span class="num">100</span>)   <span class="cmt">// each emission can suspend</span>
+        <span class="fn">emit</span>(i)         <span class="cmt">// pushes a value to the collector</span>
+    }
+}
+
+<span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">main</span>() {
+    <span class="fn">countdown</span>(<span class="num">3</span>).<span class="fn">collect</span> { value ->
+        <span class="fn">println</span>(value)
+    }
+}
+<span class="cmt">// 3</span>
+<span class="cmt">// 2</span>
+<span class="cmt">// 1</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Suspending function</td><td>suspend fun f()</td><td>Callable only from suspend code or a coroutine</td></tr>
+          <tr><td>Fire-and-manage</td><td>launch { ... }</td><td>Returns a Job; no result value</td></tr>
+          <tr><td>Concurrent result</td><td>async { ... }</td><td>Returns a Deferred&lt;T&gt;; get the value with await()</td></tr>
+          <tr><td>Wait for a Job</td><td>job.join()</td><td>Suspends until the coroutine completes</td></tr>
+          <tr><td>Structured scope</td><td>coroutineScope { ... }</td><td>Suspends until every child completes</td></tr>
+          <tr><td>Breaks structure</td><td>GlobalScope.launch { ... }</td><td>No parent; avoid in application code</td></tr>
+          <tr><td>CPU-bound dispatcher</td><td>Dispatchers.Default</td><td>Sized to CPU core count</td></tr>
+          <tr><td>Blocking I/O dispatcher</td><td>Dispatchers.IO</td><td>Large, elastic pool for blocking calls</td></tr>
+          <tr><td>Switch dispatcher</td><td>withContext(Dispatchers.IO) { }</td><td>Same coroutine, temporary dispatcher hop</td></tr>
+          <tr><td>Cancel a Job</td><td>job.cancel()</td><td>Cooperative: takes effect at the next suspension point</td></tr>
+          <tr><td>Manual cancellation check</td><td>while (isActive) { }</td><td>Needed in loops with no suspending call</td></tr>
+          <tr><td>Cancel and wait</td><td>job.cancelAndJoin()</td><td>Cancels, then suspends until fully stopped</td></tr>
+          <tr><td>Isolate child failures</td><td>supervisorScope { }</td><td>One child's exception doesn't cancel its siblings</td></tr>
+          <tr><td>Coroutine pipe</td><td>Channel&lt;T&gt;()</td><td>send/receive, suspension-based producer-consumer</td></tr>
+          <tr><td>Cold async stream</td><td>flow { emit(x) }</td><td>Runs only when collected; see the Flow guide</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#suspend">1: suspend Functions</a></li>
+      <li><a href="#launch-async">2: launch vs async</a></li>
+      <li><a href="#structured-concurrency">3: Structured Concurrency</a></li>
+      <li><a href="#dispatchers">4: Dispatchers</a></li>
+      <li><a href="#with-context">5: withContext</a></li>
+      <li><a href="#cancellation">6: Cancellation &amp; Cooperation</a></li>
+      <li><a href="#exception-handling">7: Exception Handling</a></li>
+      <li><a href="#channels">8: Channels</a></li>
+      <li><a href="#flow-intro">9: Flow: a First Look</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
