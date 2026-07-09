@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Delegated Properties | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Delegated <span>Properties</span></h1>
+  <p>lazy, observable, vetoable, map-backed properties, and how to write your own property delegate.</p>
+  <div class="hero-pills">
+    <span>by lazy</span>
+    <span>observable</span>
+    <span>vetoable</span>
+    <span>Map-backed</span>
+    <span>Custom delegate</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html" class="active"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. WHAT PROPERTY DELEGATION IS ───────────────────────── -->
+    <section class="section" id="overview">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🎁</div>
+        <h2>What Property Delegation Is</h2>
+        <span class="section-tag">by · getValue · setValue</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><a href="classes-objects.html">Classes &amp; Objects</a> shows custom <code>get()</code>/<code>set()</code> accessors written by hand for one property at a time. Property delegation generalizes that pattern: instead of writing the accessor logic inline, you hand the property off to a separate delegate object via <code>by</code>, and that object's <code>getValue</code>/<code>setValue</code> functions are what actually run on every read and write. The benefit is reuse — write "lazily initialized," "notify on change," or "validate before assigning" once, as a delegate, and apply it to any number of properties across any number of classes.</p>
+
+      <div class="diagram">
+<pre>  var name: String by SomeDelegate()
+
+  Reading `name`   →  SomeDelegate.getValue(thisRef, property)
+  Writing `name` = x  →  SomeDelegate.setValue(thisRef, property, x)
+
+  The delegate object, not the enclosing class, owns the actual
+  storage and the logic for what happens on get/set.</pre>
+      </div>
+    </section>
+
+    <!-- ── 2. LAZY ───────────────────────────────────────────────── -->
+    <section class="section" id="lazy">
+      <div class="section-header">
+        <div class="section-icon icon-green">⏳</div>
+        <h2>lazy</h2>
+        <span class="section-tag">computed once · thread-safe by default</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><a href="null-safety.html">Null Safety</a> introduces <code>lazy</code> as the counterpart to <code>lateinit</code>. As a delegate specifically: <code>lazy { }</code> returns a <code class="typ">Lazy&lt;T&gt;</code> instance, and <code>by</code> wires that instance's <code>getValue</code> to run the initializer block on first access, caching the result for every access after that.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Deferred, cached initialization</span>
+          <span class="card-badge badge-green">by lazy</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">UserProfile</span>(<span class="kw">val</span> userId: <span class="typ">Int</span>) {
+    <span class="cmt">// The block runs once, on the first read of `avatar` — not at</span>
+    <span class="cmt">// construction time, and not again on subsequent reads</span>
+    <span class="kw">val</span> avatar: <span class="typ">Bitmap</span> <span class="kw">by</span> <span class="fn">lazy</span> {
+        <span class="fn">println</span>(<span class="str">"loading avatar for user $userId"</span>)
+        <span class="fn">loadAvatarFromDisk</span>(userId)
+    }
+}
+
+<span class="kw">val</span> profile = <span class="typ">UserProfile</span>(<span class="num">1</span>)
+<span class="fn">println</span>(<span class="str">"profile created"</span>)
+profile.avatar  <span class="cmt">// "loading avatar for user 1", then loads</span>
+profile.avatar  <span class="cmt">// nothing printed: cached result returned directly</span>
+
+<span class="cmt">// Thread-safety mode is a constructor parameter when it matters</span>
+<span class="kw">val</span> singleThreadOnly <span class="kw">by</span> <span class="fn">lazy</span>(<span class="typ">LazyThreadSafetyMode</span>.<span class="typ">NONE</span>) { <span class="fn">expensiveInit</span>() }</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. OBSERVABLE ────────────────────────────────────────── -->
+    <section class="section" id="observable">
+      <div class="section-header">
+        <div class="section-icon icon-purple">👁</div>
+        <h2>observable</h2>
+        <span class="section-tag">Delegates.observable · react to change</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code class="typ">Delegates.observable</code> runs a callback after every assignment to the property, receiving both the old and new value. It's the delegate-based equivalent of a custom setter that also notifies listeners — useful for UI state, logging, or any place a change needs to trigger a side effect elsewhere.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Reacting to every assignment</span>
+          <span class="card-badge badge-purple">Delegates.observable</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlin.properties.Delegates
+
+<span class="kw">class</span> <span class="typ">ThemeSettings</span> {
+    <span class="kw">var</span> darkMode: <span class="typ">Boolean</span> <span class="kw">by</span> <span class="typ">Delegates</span>.<span class="fn">observable</span>(<span class="kw">false</span>) { property, old, new ->
+        <span class="fn">println</span>(<span class="str">"${property.name} changed: $old -> $new"</span>)
+        <span class="fn">applyThemeChange</span>(new)
+    }
+}
+
+<span class="kw">val</span> settings = <span class="typ">ThemeSettings</span>()
+settings.darkMode = <span class="kw">true</span>
+<span class="cmt">// darkMode changed: false -> true</span>
+settings.darkMode = <span class="kw">false</span>
+<span class="cmt">// darkMode changed: true -> false</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. VETOABLE ──────────────────────────────────────────── -->
+    <section class="section" id="vetoable">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🚫</div>
+        <h2>vetoable</h2>
+        <span class="section-tag">Delegates.vetoable · reject the assignment</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code class="typ">Delegates.vetoable</code> is <code>observable</code>'s stricter sibling: the callback runs <em>before</em> the assignment takes effect, and its boolean return value decides whether the new value is actually accepted. Returning <code>false</code> silently keeps the old value — the property never changes, no exception thrown.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Rejecting an invalid assignment</span>
+          <span class="card-badge badge-gold">Delegates.vetoable</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlin.properties.Delegates
+
+<span class="kw">class</span> <span class="typ">Thermostat</span> {
+    <span class="cmt">// The lambda returns true to accept the new value, false to reject it</span>
+    <span class="kw">var</span> targetTemp: <span class="typ">Int</span> <span class="kw">by</span> <span class="typ">Delegates</span>.<span class="fn">vetoable</span>(<span class="num">20</span>) { _, _, new ->
+        new <span class="kw">in</span> <span class="num">10</span>..<span class="num">32</span>   <span class="cmt">// only accept a plausible temperature range</span>
+    }
+}
+
+<span class="kw">val</span> thermostat = <span class="typ">Thermostat</span>()
+thermostat.targetTemp = <span class="num">22</span>
+<span class="fn">println</span>(thermostat.targetTemp)  <span class="cmt">// 22: accepted</span>
+
+thermostat.targetTemp = <span class="num">200</span>
+<span class="fn">println</span>(thermostat.targetTemp)  <span class="cmt">// still 22: rejected, no exception, no change</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Reach for <code>vetoable</code> when an invalid assignment should be silently ignored rather than treated as an error — think of it as the delegate-based cousin of validation in a custom setter, but positioned specifically for "reject and keep the old value" rather than "throw." If invalid input should be a hard failure instead, a custom setter with <code>require()</code> (see <a href="errors-guide.html">Errors &amp; Result</a>) is the more direct tool.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. MAP-BACKED PROPERTIES ─────────────────────────────── -->
+    <section class="section" id="map-backed">
+      <div class="section-header">
+        <div class="section-icon icon-red">🗺</div>
+        <h2>Map-Backed Properties</h2>
+        <span class="section-tag">Map&lt;String, Any?&gt; · dynamic-ish data</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A <code class="typ">Map&lt;String, Any?&gt;</code> can itself act as a property delegate — reading a property looks up its name as a key in the map, writing does the equivalent insert. This is a natural fit for data that arrives as a loosely-typed map (parsed JSON, request parameters) but that you'd rather access through named, typed properties than raw string-keyed lookups scattered through the code.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Typed access over an untyped map</span>
+          <span class="card-badge badge-red">Map delegate</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">class</span> <span class="typ">User</span>(<span class="kw">val</span> raw: <span class="typ">Map</span>&lt;<span class="typ">String</span>, <span class="typ">Any</span>?&gt;) {
+    <span class="cmt">// Each property reads its own name as the map key —</span>
+    <span class="cmt">// "name" and "age" below correspond to raw["name"] / raw["age"]</span>
+    <span class="kw">val</span> name: <span class="typ">String</span> <span class="kw">by</span> raw
+    <span class="kw">val</span> age: <span class="typ">Int</span> <span class="kw">by</span> raw
+}
+
+<span class="kw">val</span> user = <span class="typ">User</span>(<span class="fn">mapOf</span>(<span class="str">"name"</span> <span class="kw">to</span> <span class="str">"Ada"</span>, <span class="str">"age"</span> <span class="kw">to</span> <span class="num">36</span>))
+<span class="fn">println</span>(user.name)  <span class="cmt">// "Ada" — read from raw["name"], cast to String</span>
+<span class="fn">println</span>(user.age)   <span class="cmt">// 36 — read from raw["age"], cast to Int</span>
+
+<span class="cmt">// A missing key throws NoSuchElementException at the point of access,</span>
+<span class="cmt">// not at construction — the same deferred-checking trade-off lazy has</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 6. WRITING A CUSTOM DELEGATE ─────────────────────────── -->
+    <section class="section" id="custom-delegate">
+      <div class="section-header">
+        <div class="section-icon icon-blue">🛠</div>
+        <h2>Writing a Custom Delegate</h2>
+        <span class="section-tag">getValue · setValue · operator fun</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A type becomes usable after <code>by</code> simply by providing <code>getValue</code> (for a read-only <code>val</code>) or both <code>getValue</code> and <code>setValue</code> (for a mutable <code>var</code>), each marked <code>operator</code> — the same convention that powers operator overloading in <a href="functions-lambdas.html">Functions &amp; Lambdas</a>. No interface needs implementing; the compiler checks for the right function signatures structurally.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">A delegate that logs every access</span>
+          <span class="card-badge badge-blue">Custom delegate</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">import</span> kotlin.reflect.KProperty
+
+<span class="kw">class</span> <span class="typ">LoggingDelegate</span>&lt;<span class="typ">T</span>&gt;(<span class="kw">private</span> <span class="kw">var</span> value: <span class="typ">T</span>) {
+
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">getValue</span>(thisRef: <span class="typ">Any</span>?, property: <span class="typ">KProperty</span>&lt;*&gt;): <span class="typ">T</span> {
+        <span class="fn">println</span>(<span class="str">"reading ${property.name} -> $value"</span>)
+        <span class="kw">return</span> value
+    }
+
+    <span class="kw">operator</span> <span class="kw">fun</span> <span class="fn">setValue</span>(thisRef: <span class="typ">Any</span>?, property: <span class="typ">KProperty</span>&lt;*&gt;, newValue: <span class="typ">T</span>) {
+        <span class="fn">println</span>(<span class="str">"writing ${property.name}: $value -> $newValue"</span>)
+        value = newValue
+    }
+}
+
+<span class="kw">class</span> <span class="typ">Account</span> {
+    <span class="kw">var</span> balance: <span class="typ">Int</span> <span class="kw">by</span> <span class="typ">LoggingDelegate</span>(<span class="num">0</span>)
+}
+
+<span class="kw">val</span> account = <span class="typ">Account</span>()
+account.balance = <span class="num">100</span>   <span class="cmt">// writing balance: 0 -> 100</span>
+<span class="fn">println</span>(account.balance)  <span class="cmt">// reading balance -> 100 ... then prints 100</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>The <code class="typ">KProperty&lt;*&gt;</code> parameter is Kotlin's reflection metadata for the property itself — its <code>.name</code> is what let the <code>LoggingDelegate</code> above report which property was touched, without the delegate needing to be told the name explicitly at construction time. This is the same mechanism <code>Delegates.observable</code> and <code>vetoable</code> use internally to include the property name in their own callbacks.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Delegate</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Lazy initialization</td><td>val x by lazy { ... }</td><td>Runs once, on first read; thread-safe by default</td></tr>
+          <tr><td>React to change</td><td>var x by Delegates.observable(init) { p, old, new -> }</td><td>Callback runs after the assignment takes effect</td></tr>
+          <tr><td>Reject a change</td><td>var x by Delegates.vetoable(init) { p, old, new -> }</td><td>Callback returns Boolean; false keeps the old value</td></tr>
+          <tr><td>Map-backed property</td><td>val x: T by map</td><td>Reads map[propertyName], cast to T</td></tr>
+          <tr><td>Custom read-only delegate</td><td>operator fun getValue(thisRef, property): T</td><td>Required for a val delegate</td></tr>
+          <tr><td>Custom mutable delegate</td><td>operator fun setValue(thisRef, property, value: T)</td><td>Required in addition, for a var delegate</td></tr>
+          <tr><td>Property metadata</td><td>property: KProperty&lt;*&gt;</td><td>property.name gives the delegate the property's name</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#overview">1: What Property Delegation Is</a></li>
+      <li><a href="#lazy">2: lazy</a></li>
+      <li><a href="#observable">3: observable</a></li>
+      <li><a href="#vetoable">4: vetoable</a></li>
+      <li><a href="#map-backed">5: Map-Backed Properties</a></li>
+      <li><a href="#custom-delegate">6: Writing a Custom Delegate</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>

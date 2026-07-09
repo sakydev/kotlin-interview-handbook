@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotlin Ranges &amp; Progressions | Ultimate Handbook</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="hero">
+  <h1>Ranges <span>&amp; Progressions</span></h1>
+  <p>.., ..&lt;, downTo, step, membership checks, ranges over any Comparable, and the Progression underneath.</p>
+  <div class="hero-pills">
+    <span>.. / ..&lt;</span>
+    <span>downTo</span>
+    <span>step</span>
+    <span>in checks</span>
+    <span>Comparable ranges</span>
+    <span>Progression</span>
+  </div>
+</div>
+
+<div class="layout has-toc">
+
+  <nav class="pkg-nav">
+    <a href="index.html" class="home-link">Kotlin Handbook</a>
+    <div class="nav-group">Language</div>
+    <ul class="pkg-list">
+      <li><a href="basics.html"><span class="pkg-icon">📖</span>Basics</a></li>
+      <li><a href="null-safety.html"><span class="pkg-icon">🛡</span>Null Safety</a></li>
+      <li><a href="functions-lambdas.html"><span class="pkg-icon">λ</span>Functions &amp; Lambdas</a></li>
+      <li><a href="classes-objects.html"><span class="pkg-icon">🏛</span>Classes &amp; Objects</a></li>
+      <li><a href="generics.html"><span class="pkg-icon">🧬</span>Generics</a></li>
+      <li><a href="collections.html"><span class="pkg-icon">📦</span>Collections</a></li>
+      <li><a href="coroutines.html"><span class="pkg-icon">🔀</span>Coroutines</a></li>
+      <li><a href="testing.html"><span class="pkg-icon">🧪</span>Testing</a></li>
+      <li><a href="java-interop.html"><span class="pkg-icon">☕</span>Java Interop</a></li>
+      <li><a href="performance.html"><span class="pkg-icon">⚡</span>Performance</a></li>
+      <li><a href="gotchas.html"><span class="pkg-icon">⚠️</span>Gotchas</a></li>
+    </ul>
+    <div class="nav-group">Standard Library</div>
+    <ul class="pkg-list">
+      <li><a href="strings-guide.html"><span class="pkg-icon">🔤</span>kotlin.text</a></li>
+      <li><a href="collections-api-guide.html"><span class="pkg-icon">📊</span>Collections API</a></li>
+      <li><a href="sequences-guide.html"><span class="pkg-icon">🌊</span>Sequences</a></li>
+      <li><a href="scope-functions-guide.html"><span class="pkg-icon">🎯</span>Scope Functions</a></li>
+      <li><a href="ranges-guide.html" class="active"><span class="pkg-icon">📏</span>Ranges</a></li>
+      <li><a href="delegates-guide.html"><span class="pkg-icon">🎁</span>Delegates</a></li>
+      <li><a href="io-guide.html"><span class="pkg-icon">📁</span>Files &amp; IO</a></li>
+      <li><a href="errors-guide.html"><span class="pkg-icon">🚨</span>Errors &amp; Result</a></li>
+      <li><a href="time-guide.html"><span class="pkg-icon">⏱</span>Time</a></li>
+    </ul>
+    <div class="nav-group">kotlinx</div>
+    <ul class="pkg-list">
+      <li><a href="flow-guide.html"><span class="pkg-icon">🌀</span>Flow</a></li>
+      <li><a href="serialization-guide.html"><span class="pkg-icon">🔌</span>Serialization</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- ── 1. RANGE BASICS ──────────────────────────────────────── -->
+    <section class="section" id="range-basics">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📏</div>
+        <h2>Range Basics: .. and ..&lt;</h2>
+        <span class="section-tag">rangeTo · inclusive · exclusive end</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">A range is a genuine object — an instance of <code class="typ">IntRange</code>, <code class="typ">CharRange</code>, and so on — not just loop syntax. <code>1..5</code> is sugar for <code>1.rangeTo(5)</code>, an operator function (see <a href="functions-lambdas.html">Functions &amp; Lambdas</a>) that constructs the range object; you can hold it in a variable, pass it to a function, or query it, entirely separately from ever looping over it.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Inclusive vs exclusive end</span>
+          <span class="card-badge badge-blue">.. / ..&lt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// .. is inclusive on both ends: 1, 2, 3, 4, 5</span>
+<span class="kw">val</span> inclusive = <span class="num">1</span>..<span class="num">5</span>
+<span class="fn">println</span>(inclusive.<span class="fn">toList</span>())  <span class="cmt">// [1, 2, 3, 4, 5]</span>
+
+<span class="cmt">// ..< excludes the end (Kotlin 1.7+) — reads like a half-open interval</span>
+<span class="kw">val</span> exclusive = <span class="num">0</span>..&lt;<span class="num">5</span>
+<span class="fn">println</span>(exclusive.<span class="fn">toList</span>())  <span class="cmt">// [0, 1, 2, 3, 4]</span>
+
+<span class="cmt">// The range is a real object: query it without iterating at all</span>
+<span class="fn">println</span>(inclusive.first)   <span class="cmt">// 1</span>
+<span class="fn">println</span>(inclusive.last)    <span class="cmt">// 5</span>
+<span class="fn">println</span>(inclusive.isEmpty())  <span class="cmt">// false</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Prefer <code>0..&lt;n</code> over the older <code>0 until n</code> in new Kotlin 2.x code. Both behave identically — <code>until</code> is still available and still idiomatic in existing codebases — but <code>..&lt;</code> is shorter and visually mirrors the <code>[0, n)</code> half-open notation directly.</div>
+      </div>
+    </section>
+
+    <!-- ── 2. DOWNTO & STEP ──────────────────────────────────────── -->
+    <section class="section" id="downto-step">
+      <div class="section-header">
+        <div class="section-icon icon-green">🔽</div>
+        <h2>downTo &amp; step</h2>
+        <span class="section-tag">reverse order · custom increment</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)"><code>..</code> and <code>..&lt;</code> only ever count upward by 1. <code>downTo</code> builds a descending range, and <code>step</code> — an infix function, same family as <code>to</code> from <a href="functions-lambdas.html">Functions &amp; Lambdas</a> — changes the increment on any range, ascending or descending.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Counting backward and by custom increments</span>
+          <span class="card-badge badge-green">downTo / step</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// downTo: descending range</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">5</span> <span class="kw">downTo</span> <span class="num">1</span>) <span class="fn">print</span>(<span class="str">"$i "</span>)  <span class="cmt">// 5 4 3 2 1</span>
+<span class="fn">println</span>()
+
+<span class="cmt">// step: changes the increment on an ascending range</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">0</span>..<span class="num">10</span> <span class="kw">step</span> <span class="num">2</span>) <span class="fn">print</span>(<span class="str">"$i "</span>)  <span class="cmt">// 0 2 4 6 8 10</span>
+<span class="fn">println</span>()
+
+<span class="cmt">// step also works combined with downTo</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">10</span> <span class="kw">downTo</span> <span class="num">0</span> <span class="kw">step</span> <span class="num">3</span>) <span class="fn">print</span>(<span class="str">"$i "</span>)  <span class="cmt">// 10 7 4 1</span></pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div><code>step</code> always requires a positive value, even when used with <code>downTo</code> — the direction comes entirely from whether you wrote <code>..</code>/<code>..&lt;</code> or <code>downTo</code>, not from the sign of the step. <code>10 downTo 0 step -3</code> throws <code class="typ">IllegalArgumentException</code> at runtime, not a compile error, so it's easy to miss until it's actually executed.</div>
+      </div>
+    </section>
+
+    <!-- ── 3. MEMBERSHIP CHECKS ─────────────────────────────────── -->
+    <section class="section" id="membership">
+      <div class="section-header">
+        <div class="section-icon icon-purple">✅</div>
+        <h2>in Checks</h2>
+        <span class="section-tag">contains · no iteration</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Testing whether a value falls inside a range doesn't iterate anything — <code>x in range</code> desugars to <code>range.contains(x)</code>, which for a numeric range is a single pair of comparisons (<code>x &gt;= first &amp;&amp; x &lt;= last</code>), regardless of how large the range is. This is what makes ranges a natural fit for <code>when</code> branches and bounds checks, covered from the control-flow side in <a href="basics.html">Basics</a>.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Constant-time membership, any range size</span>
+          <span class="card-badge badge-purple">in</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> validAges = <span class="num">0</span>..<span class="num">120</span>
+<span class="kw">val</span> hugeRange = <span class="num">1</span>..<span class="num">1_000_000_000</span>
+
+<span class="fn">println</span>(<span class="num">45</span> <span class="kw">in</span> validAges)     <span class="cmt">// true</span>
+<span class="fn">println</span>(<span class="num">150</span> <span class="kw">in</span> validAges)    <span class="cmt">// false</span>
+<span class="fn">println</span>(<span class="num">999_999_999</span> <span class="kw">in</span> hugeRange)  <span class="cmt">// true — instant, not a billion-step scan</span>
+
+<span class="cmt">// Reads naturally as a when branch condition</span>
+<span class="kw">fun</span> <span class="fn">classify</span>(age: <span class="typ">Int</span>) = <span class="kw">when</span> (age) {
+    <span class="kw">in</span> <span class="num">0</span>..<span class="num">12</span>  -> <span class="str">"child"</span>
+    <span class="kw">in</span> <span class="num">13</span>..<span class="num">19</span> -> <span class="str">"teenager"</span>
+    <span class="kw">else</span>       -> <span class="str">"adult"</span>
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. RANGES OVER CHARS & COMPARABLES ───────────────────── -->
+    <section class="section" id="comparable-ranges">
+      <div class="section-header">
+        <div class="section-icon icon-gold">🔤</div>
+        <h2>Ranges over Chars &amp; Comparables</h2>
+        <span class="section-tag">CharRange · ClosedRange&lt;T&gt;</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Ranges aren't limited to numbers. <code>'a'..'z'</code> builds a <code class="typ">CharRange</code>, iterable exactly like an <code class="typ">IntRange</code>. More generally, <code>..</code> works for any type implementing <code class="typ">Comparable&lt;T&gt;</code> — the result is a <code class="typ">ClosedRange&lt;T&gt;</code> that supports membership checks and bounds, though only types with a defined "next value" (like <code class="typ">Int</code> or <code class="typ">Char</code>) can actually be iterated with a <code>for</code> loop.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">CharRange and a custom Comparable range</span>
+          <span class="card-badge badge-gold">Comparable&lt;T&gt;</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="cmt">// CharRange: iterable, just like IntRange</span>
+<span class="kw">for</span> (c <span class="kw">in</span> <span class="str">'a'</span>..<span class="str">'e'</span>) <span class="fn">print</span>(c)  <span class="cmt">// abcde</span>
+<span class="fn">println</span>()
+
+<span class="fn">println</span>(<span class="str">'m'</span> <span class="kw">in</span> <span class="str">'a'</span>..<span class="str">'z'</span>)  <span class="cmt">// true</span>
+
+<span class="cmt">// Any Comparable<T> can form a ClosedRange, even without iteration support</span>
+<span class="kw">data</span> <span class="kw">class</span> <span class="typ">Version</span>(<span class="kw">val</span> major: <span class="typ">Int</span>, <span class="kw">val</span> minor: <span class="typ">Int</span>) : <span class="typ">Comparable</span>&lt;<span class="typ">Version</span>&gt; {
+    <span class="kw">override</span> <span class="kw">fun</span> <span class="fn">compareTo</span>(other: <span class="typ">Version</span>): <span class="typ">Int</span> =
+        <span class="fn">compareValuesBy</span>(<span class="kw">this</span>, other, { it.major }, { it.minor })
+}
+
+<span class="kw">val</span> supportedRange = <span class="typ">Version</span>(<span class="num">1</span>, <span class="num">0</span>)..<span class="typ">Version</span>(<span class="num">2</span>, <span class="num">5</span>)
+<span class="fn">println</span>(<span class="typ">Version</span>(<span class="num">1</span>, <span class="num">8</span>) <span class="kw">in</span> supportedRange)  <span class="cmt">// true: membership works, no loop needed</span>
+<span class="cmt">// for (v in supportedRange) { }  // ERROR: Version has no defined "next" step</span></pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="callout-icon">ℹ️</span>
+        <div>The distinction that matters: any <code class="typ">Comparable&lt;T&gt;</code> gets range construction and membership checks for free, but only types the standard library specifically supports for stepping (<code class="typ">Int</code>, <code class="typ">Long</code>, <code class="typ">Char</code>) can be iterated with <code>for</code>. A custom type's range is genuinely useful for bounds checking even without ever being looped over.</div>
+      </div>
+    </section>
+
+    <!-- ── 5. PROGRESSIONS ──────────────────────────────────────── -->
+    <section class="section" id="progressions">
+      <div class="section-header">
+        <div class="section-icon icon-red">🔢</div>
+        <h2>Progressions</h2>
+        <span class="section-tag">IntProgression · first/last/step · Iterable</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Under the hood, <code>1..10</code>, <code>10 downTo 1</code>, and <code>1..10 step 2</code> are all instances of <code class="typ">IntProgression</code> — a range is really a special case of a progression with a step of exactly 1. Every progression implements <code class="typ">Iterable&lt;Int&gt;</code>, which is the whole reason <code>for (i in 1..10)</code> works at all: it's the same iteration mechanism covered generally in <a href="collections.html">Collections</a>, just specialized for a lazily-computed sequence of numbers instead of a stored list.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">first, last, step — the three defining fields</span>
+          <span class="card-badge badge-red">IntProgression</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">val</span> progression = <span class="num">1</span>..<span class="num">11</span> <span class="kw">step</span> <span class="num">3</span>
+
+<span class="fn">println</span>(progression.first)  <span class="cmt">// 1</span>
+<span class="fn">println</span>(progression.last)   <span class="cmt">// 10 — NOT 11: last is the final value the step actually lands</span>
+                             <span class="cmt">// on (1, 4, 7, 10), even though the range's written end is 11</span>
+<span class="fn">println</span>(progression.step)   <span class="cmt">// 3</span>
+<span class="fn">println</span>(progression.<span class="fn">toList</span>())  <span class="cmt">// [1, 4, 7, 10]</span>
+
+<span class="cmt">// A progression allocates no backing array — each element is</span>
+<span class="cmt">// computed on demand from first + step, exactly like generateSequence</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Because a progression computes elements on the fly rather than storing them, iterating <code>1..1_000_000_000</code> in a <code>for</code> loop allocates essentially nothing — no billion-element array exists anywhere. This is what makes ranges safe to use freely for loop bounds no matter how large, unlike materializing the same span as a <code class="typ">List</code> with <code>.toList()</code> would be.</div>
+      </div>
+    </section>
+
+    <!-- ── 99. QUICK REFERENCE ──────────────────────────────────── -->
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-icon icon-blue">📋</div>
+        <h2>Quick Reference</h2>
+        <span class="section-tag">Syntax cheat-sheet</span>
+      </div>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Syntax</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Inclusive range</td><td>1..5</td><td>1, 2, 3, 4, 5</td></tr>
+          <tr><td>Exclusive end</td><td>0..&lt;5</td><td>0, 1, 2, 3, 4 — Kotlin 1.7+, prefer over `until`</td></tr>
+          <tr><td>Descending range</td><td>5 downTo 1</td><td>5, 4, 3, 2, 1</td></tr>
+          <tr><td>Custom increment</td><td>0..10 step 2</td><td>step is always positive, even with downTo</td></tr>
+          <tr><td>Membership check</td><td>x in range</td><td>Constant time for numeric ranges, no iteration</td></tr>
+          <tr><td>Char range</td><td>'a'..'z'</td><td>Iterable, same as IntRange</td></tr>
+          <tr><td>Comparable range</td><td>a..b for any Comparable&lt;T&gt;</td><td>Supports membership; iterable only if T supports stepping</td></tr>
+          <tr><td>Underlying type</td><td>IntProgression / CharProgression</td><td>Defined by first, last, step; range is step = 1</td></tr>
+          <tr><td>No backing storage</td><td>for (i in 1..1_000_000_000)</td><td>Elements computed on demand, not materialized</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <nav class="toc-nav">
+    <div class="toc-title">On this page</div>
+    <ul class="toc">
+      <li><a href="#range-basics">1: Range Basics: .. and ..&lt;</a></li>
+      <li><a href="#downto-step">2: downTo &amp; step</a></li>
+      <li><a href="#membership">3: in Checks</a></li>
+      <li><a href="#comparable-ranges">4: Chars &amp; Comparables</a></li>
+      <li><a href="#progressions">5: Progressions</a></li>
+      <li><a href="#reference">99: Quick Reference</a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
