@@ -61,6 +61,88 @@
 
   <main class="content">
 
+    <!-- ── 0. WHY COROUTINES ────────────────────────────────────── -->
+    <section class="section" id="why-coroutines">
+      <div class="section-header">
+        <div class="section-icon icon-blue">❓</div>
+        <h2>Why Coroutines</h2>
+        <span class="section-tag">the problem, before the syntax</span>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">Any program that waits on something — a network call, a database query, a file read — has to decide what the waiting thread does in the meantime. There are three broad answers, and coroutines exist because the first two are each bad in a different way.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Option 1: block the thread</span>
+          <span class="card-badge badge-blue">Plain threads</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">fetchUser</span>(id: <span class="typ">Int</span>): <span class="typ">User</span> {
+    <span class="typ">Thread</span>.<span class="fn">sleep</span>(<span class="num">1000</span>)   <span class="cmt">// the OS thread is parked here, doing nothing,</span>
+    <span class="kw">return</span> <span class="typ">User</span>(id, <span class="str">"Ada"</span>)  <span class="cmt">// for the full 1000ms — it can't pick up other work</span>
+}
+<span class="cmt">// Handling 10,000 concurrent requests this way means 10,000 threads,</span>
+<span class="cmt">// each with ~1MB of stack, each costing the OS scheduler real time</span>
+<span class="cmt">// to context-switch between. Threads are a genuinely expensive resource.</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Option 2: callbacks, so the thread is never blocked</span>
+          <span class="card-badge badge-blue">Callback style</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">fun</span> <span class="fn">fetchUser</span>(id: <span class="typ">Int</span>, onResult: (<span class="typ">User</span>) -> <span class="typ">Unit</span>) {
+    httpClient.<span class="fn">getAsync</span>(<span class="str">"/users/$id"</span>) { response ->
+        onResult(<span class="typ">User</span>.<span class="fn">parse</span>(response))
+    }
+}
+
+<span class="fn">fetchUser</span>(<span class="num">1</span>) { user ->
+    <span class="fn">fetchPosts</span>(user.id) { posts ->            <span class="cmt">// nested another level</span>
+        <span class="fn">fetchComments</span>(posts) { comments ->      <span class="cmt">// and another...</span>
+            <span class="fn">render</span>(user, posts, comments)       <span class="cmt">// error handling, cancellation, and</span>
+        }                                              <span class="cmt">// sequencing all get harder at each level</span>
+    }
+}
+<span class="cmt">// The thread is free while waiting — good — but the code no longer</span>
+<span class="cmt">// reads top to bottom, and composing/cancelling/error-handling across</span>
+<span class="cmt">// nested callbacks is notoriously easy to get wrong. This is "callback hell."</span></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Option 3: coroutines — thread-free waiting, sequential-looking code</span>
+          <span class="card-badge badge-green">Coroutines</span>
+        </div>
+        <div class="code-wrap">
+<pre><span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">fetchUser</span>(id: <span class="typ">Int</span>): <span class="typ">User</span> {
+    <span class="fn">delay</span>(<span class="num">1000</span>)          <span class="cmt">// frees the underlying thread while waiting</span>
+    <span class="kw">return</span> <span class="typ">User</span>(id, <span class="str">"Ada"</span>)
+}
+
+<span class="kw">suspend</span> <span class="kw">fun</span> <span class="fn">render</span>(id: <span class="typ">Int</span>) {
+    <span class="kw">val</span> user = <span class="fn">fetchUser</span>(id)             <span class="cmt">// reads top to bottom,</span>
+    <span class="kw">val</span> posts = <span class="fn">fetchPosts</span>(user.id)      <span class="cmt">// no nesting, no callback,</span>
+    <span class="kw">val</span> comments = <span class="fn">fetchComments</span>(posts) <span class="cmt">// yet the thread is never blocked</span>
+    <span class="fn">renderUi</span>(user, posts, comments)
+}
+<span class="cmt">// Coroutines get you both properties at once: the thread-efficiency of</span>
+<span class="cmt">// callbacks, with the straight-line readability of blocking code. The</span>
+<span class="cmt">// compiler does the callback-style rewriting for you behind suspend.</span></pre>
+        </div>
+      </div>
+
+      <p style="margin-bottom:18px;color:var(--muted)">That's the whole motivation: a coroutine is a unit of work that can <strong>suspend</strong> — pause without holding a thread hostage — and be resumed later, possibly on a different thread. Because suspending doesn't block, a small pool of real OS threads can serve a huge number of coroutines, most of which are just waiting on I/O at any given moment. Everything in the rest of this page — <code>suspend</code>, <code>launch</code>/<code>async</code>, dispatchers, structured concurrency — is machinery built on top of that one idea: how you start a coroutine, how you get a result back out of it, which thread pool it actually runs on, and how its lifetime is managed so it can't leak.</p>
+
+      <div class="callout">
+        <span class="callout-icon">🐹</span>
+        <div><strong>Coming from Go:</strong> Go sidesteps this whole tradeoff at the language level — goroutines are cheap, the runtime multiplexes them onto OS threads for you, and blocking-looking code (<code>resp, err := http.Get(url)</code>) is actually non-blocking under the hood because the Go scheduler parks the goroutine, not the thread. Kotlin can't change how the JVM's <code>Thread</code> works, so it solves the same problem one layer up: the compiler transforms <code>suspend</code> functions into state machines that can hand the thread back, which is why the mechanism is more visible and more explicit in Kotlin than in Go.</div>
+      </div>
+    </section>
+
     <!-- ── 1. SUSPEND FUNCTIONS ─────────────────────────────────── -->
     <section class="section" id="suspend">
       <div class="section-header">
@@ -537,6 +619,7 @@
   <nav class="toc-nav">
     <div class="toc-title">On this page</div>
     <ul class="toc">
+      <li><a href="#why-coroutines">0: Why Coroutines</a></li>
       <li><a href="#suspend">1: suspend Functions</a></li>
       <li><a href="#launch-async">2: launch vs async</a></li>
       <li><a href="#structured-concurrency">3: Structured Concurrency</a></li>
